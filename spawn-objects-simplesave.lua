@@ -1,13 +1,36 @@
--- name: Spawn Objects New (beta)
+-- name: Spawn Objects simplesave (beta)
 -- description: Lets players spawn objects from a categorized menu
+
+-- KNOWN BUGS:
+-- - When an object id deleted and the player saves right after, that
+-- object might appears in the table because still fullt despawned. When you
+-- loadmap you can bump into an invisible object
+-- TODO: - If player uses /savemap while wooden logs are rotated, that pitch is
+-- saved in the file, and when map is loaded, the log will have that pitch
+-- despite not rotating. Maybe a variable in `local categories` that tell to
+-- reset pitch on save?
 
 local vowels = {
     ["A"] = true, ["E"] = true, ["I"] = true, ["O"] = true, ["U"] = true
 }
 
+-- local COOLDOWN_FRAMES = 10
 local COOLDOWN_FRAMES = 80
--- local SPEED_MULTIPLIER = 1.5
-local SPEED_MULTIPLIER = 5.0
+local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+-- local gAngleFixFrames = 0   -- In these N frames, code will be run to fix angles of spawned objects in loadmap
+
+-- TODO: can we have less that unsigned 32 to consume even less memory?
+-- define_custom_obj_fields({
+--     oModSpawnedFlag = 'u32'  -- mod spawned objects are flagged
+--     oModModelID = 's32'  -- model id, saved into the object itself
+-- })
+define_custom_obj_fields({
+    oModSpawnedFlag = 'u32',
+    oModModelID = 's32',
+    -- oModSavedPitch = 's32',
+    -- oModSavedYaw = 's32',
+    -- oModSavedRoll = 's32',
+})
 
 -- Menu: allow guest object deletion
 gGlobalSyncTable.allowGuestDeletion = true
@@ -43,6 +66,7 @@ local categories = {
         name = "Platforms",
         items = {
             {name = "Wood piece", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllWoodPiece, spawnYOffset = -100},
+            -- Logs get pitch ~= 0 when rotated
             { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnYOffset = -250 },
             {name = "Log LLL", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnYOffset = -250},
             { behavior = id_bhvTree, model = E_MODEL_BUBBLY_TREE, name = "Tree", spawnOffset = 250, spawnYOffset = -100 },
@@ -396,87 +420,6 @@ function move_selection(m)
     play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
 end
 
--- Holds all saved objects per level
-local persistentObjects = {}
-
-function register_persistent_object(o, objBehavior, objModel)
-    if not network_is_server() then return end
-
-    -- level where player is
-    local levelNum = gNetworkPlayers[0].currLevelNum
-
-    -- Initialize map element with empty dict
-    if not persistentObjects[levelNum] then
-        persistentObjects[levelNum] = {}
-    end
-
-    table.insert(persistentObjects[levelNum], {
-        beh    = objBehavior,
-        model  = objModel,
-        x      = o.oPosX,
-        y      = o.oPosY,
-        z      = o.oPosZ,
-        yaw    = o.oFaceAngleYaw,
-        pitch  = o.oFaceAnglePitch,
-        custom = {} -- here for future custom data
-    })
-end
-
-local function restore_level_objects(levelNum)
-    local list = persistentObjects[levelNum]
-    if not list then
-        -- print("No persistent objects for level " .. levelNum)
-        return
-    end
-
-    print("Restoring " .. #list .. " persistent objects for level " .. levelNum)
-
-    for _, data in ipairs(list) do
-        spawn_persistent_object(data)
-    end
-end
-
-function spawn_persistent_object(data)
-    if not network_is_server() then return end
-
-    print('spawn_persistent_object')
-
-    return spawn_sync_object(data.beh, data.model, data.x, data.y, data.z, function(o)
-        o.oFaceAngleYaw   = data.yaw or 0
-        o.oFaceAnglePitch = data.pitch or 0
-
-        network_init_object(o, true, {
-            "oFaceAngleYaw",
-            "oFaceAnglePitch"
-        })
-    end)
-end
-
-hook_event(HOOK_ON_LEVEL_INIT, function()
-  -- this is the level *this* player just entered
-  local levelNum = gNetworkPlayers[0].currLevelNum
-
-    if network_is_server() then
-        -- Host restores immediately
-        restore_level_objects(levelNum)
-    else
-        -- Guest asks the host to restore this level
-        network_send(true, {
-            type = "REQUEST_PERSISTENT_OBJECTS",
-            levelNum = levelNum
-        })
-        print("[Persistent] Guest requested objects for level " .. levelNum)
-    end
-end)
-
--- Host receives requests from guests
-hook_event(HOOK_ON_PACKET_RECEIVE, function(pkt)
-    if network_is_server() and pkt.type == "REQUEST_PERSISTENT_OBJECTS" then
-        restore_level_objects(pkt.levelNum)
-        print("[Persistent] Host restored objects for level " .. pkt.levelNum .. " (requested by guest)")
-    end
-end)
-
 function spawn_selected(m)
     if m.controller.buttonPressed & X_BUTTON == 0 then return end
     if not inSubmenu then return end   -- only spawn when inside a submenu
@@ -500,17 +443,61 @@ function spawn_selected(m)
     local spawnY = m.pos.y + (obj.spawnYOffset or 0)
     local spawnZ = m.pos.z + effectiveOffset * coss(m.faceAngle.y)
 
+    -- print(string.format('spawnX: %.15f', spawnX))
+    -- print(string.format('spawnY: %.15f', spawnY))
+    -- print(string.format('spawnZ: %.15f', spawnZ))
+
+    -- TODO: I think `local o = ` is useless
     local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
       o.oFaceAngleYaw = m.faceAngle.y
       o.oFaceAnglePitch = m.faceAngle.x
+      o.oFaceAngleRoll = m.faceAngle.z
+
+      -- The values of oHome* is slighty different from the ones of the spawn*
+      -- variables. This solution is not working
+      -- o.oHomeX = spawnX
+      -- o.oHomeY = spawnY
+      -- o.oHomeZ = spawnZ
+      -- o.oHomeX = o.oPosX
+      -- o.oHomeY = o.oPosY
+      -- o.oHomeZ = o.oPosZ
+
+      -- o.oFaceAnglePitch = 0
+      -- o.oFaceAngleRoll = 0
+      o.oModSpawnedFlag = 1
+      -- o.oModBhvID = obj.behavior
+      o.oModModelID = obj.model
+
+      -- For testing
+      -- o.header.gfx.angle.z = 16384
+      -- o.oFaceAngleRoll = 16384
+      o.header.gfx.angle.x = o.oFaceAnglePitch
+      o.header.gfx.angle.y = o.oFaceAngleYaw
+      o.header.gfx.angle.z = o.oFaceAngleRoll
+
+      -- --o.oTimer = 0
+      -- o.oMoveAngleYaw = m.faceAngle.y
+      -- o.oFaceAngleYaw = m.faceAngle.y
+      -- o.oMoveAnglePitch = m.faceAngle.x
+      -- o.oFaceAnglePitch = m.faceAngle.x
+      -- o.oMoveAngleRoll = m.faceAngle.z
+      -- o.oFaceAngleRoll = m.faceAngle.z
 
       network_init_object(o, true, {
         "oFaceAngleYaw",
         "oFaceAnglePitch",
+        "oFaceAngleRoll",
+        "oModSpawnedFlag",
+        -- "oModBhvID",
+        "oModModelID",
       })
     end)
 
-    register_persistent_object(o, obj.behavior, obj.model)
+    -- print(string.format('oHomeX: %.15f', o.oHomeX))
+    -- print(string.format('oHomeY: %.15f', o.oHomeY))
+    -- print(string.format('oHomeZ: %.15f', o.oHomeZ))
+
+    -- register_persistent_object(o, obj.behavior, obj.model)
     data.cooldown = COOLDOWN_FRAMES
 
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
@@ -592,6 +579,11 @@ local function handle_object_deletion(m)
             nearest.header.gfx.node.flags = nearest.header.gfx.node.flags | GRAPH_RENDER_INVISIBLE
         end
 
+        if nearest.oModSpawnedFlag then
+          nearest.oModSpawnedFlag = 0
+          nearest.activeFlags = 0
+        end
+
         obj_mark_for_deletion(nearest)
 
         -- Popup only for local player
@@ -604,6 +596,243 @@ local function handle_object_deletion(m)
         end
     end
 end
+
+function savemap(name)
+    local modFs = mod_fs_get() or mod_fs_create()
+    if not modFs then
+        djui_popup_create("\\#ff4444\\Failed to create ModFS!", 2)
+        return true
+    end
+
+    name = name or "default"
+    filename = 'map_' .. name .. '.sav'
+
+    local file = modFs:get_file(filename) or modFs:create_file(filename, true)
+    file:erase(file.size)  -- clear old data
+    file:set_text_mode(true)
+    file:rewind()
+
+    local savedObjects = {}
+
+    for list = 0, NUM_OBJ_LISTS -1 do
+      local o = obj_get_first(list)
+      while o ~= nil do
+        if o.oModSpawnedFlag == 1 then
+        -- TODO: bug che vengono salvato oggetti eliminati
+        -- if o.oModSpawnedFlag == 1 and (o.activeFlags & ACTIVE_FLAG_ACTIVE) ~= 0 then
+          file:write_string(string.format(
+            -- "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
+            "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
+            get_id_from_behavior(o.behavior), 
+            -- obj_get_model_id_extended(o),
+            -- o.oModBhvID,
+            o.oModModelID,
+            -- o.oPosX,
+            -- o.oPosY,
+            -- o.oPosZ,
+            o.oHomeX,
+            o.oHomeY,
+            o.oHomeZ,
+            o.header.gfx.angle.x,  -- pitch
+            o.header.gfx.angle.y,  -- yaw
+            o.header.gfx.angle.z,  -- roll
+            -- o.oFaceAnglePitch,
+            -- o.oFaceAngleYaw,
+            -- o.oFaceAngleRoll,
+            o.oBehParams or 0
+          ))
+        end
+        o = obj_get_next(o)
+      end
+    end
+    -- for list = 0, NUM_OBJ_LISTS -1 do
+    --   print('in for')
+    --   local o = obj_get_first(list)
+    --   while o ~= nil do
+    --     print('in while')
+    --     if o.oModSpawnedFlag == 1 then
+    --       print('in if')
+    --       table.insert(savedObjects, {
+    --           behavior = o.behavior,
+    --           model = o.header.gfx,
+    --           -- behavior = o.oBehavior,      -- or behavior name/id
+    --           -- model = o.oGraphNode,        -- or whatever you use
+    --           pos = {x = o.oPosX, y = o.oPosY, z = o.oPosZ},
+    --           rot = {x = o.oFaceAnglePitch, y = o.oFaceAngleYaw, z = o.oFaceAngleRoll},
+    --           -- add any other data you need (params, scale, custom fields, etc.)
+    --       })
+    --     end
+    --     o = obj_get_next(o)
+    --   end
+    -- end
+
+    modFs:save()
+    djui_popup_create(string.format("\\#00ff00\\Map saved. %s\\nObjects number: %d", filename, #savedObjects), 3)
+
+    return true
+end
+hook_chat_command("savemap", "[name] Save all objects on map", savemap)
+
+local function loadmap(name)
+  if not network_is_server() then
+    if gMarioStates[0].playerIndex == 0 then
+      djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
+    end
+    return true
+  end
+
+  local modFs = mod_fs_get() or mod_fs_create()
+  if not modFs then
+      djui_popup_create("\\#ff4444\\ModFS not available!", 2)
+      return true
+  end
+
+  name = name or "default"
+  filename = 'map_' .. name .. '.sav'
+
+  local file = modFs:get_file(filename)
+  if not file or file.size == 0 then
+      djui_popup_create("\\#ff4444\\Save file not found: " .. name, 2)
+      return true
+  end
+
+  file:set_text_mode(true)
+  file:rewind()
+
+  numObjectsLoaded = 0
+  -- local line
+  while not file:is_eof() do
+    local line = file:read_line()
+
+    if line and line ~= "" then
+      local parts = {}
+      for val in string.gmatch(line, "([^,]+)") do
+        table.insert(parts, val)
+      end
+
+      -- TODO: Objects that have less that 9 fields get skipped. Should i fail instead?
+      if #parts >= 9 then
+        local beh = tonumber(parts[1])
+        local model = tonumber(parts[2])
+        local x = tonumber(parts[3])
+        local y = tonumber(parts[4])
+        local z = tonumber(parts[5])
+        local pitch = tonumber(parts[6])
+        local yaw = tonumber(parts[7])
+        -- local roll = tonumber(parts[8]) or 0
+        local roll = tonumber(parts[8])
+        local behParams = tonumber(parts[9])
+
+        -- print(string.format('X: %.15f', x))
+        -- print(string.format('Y: %.15f', y))
+        -- print(string.format('Z: %.15f', z))
+
+
+        -- TODO: Add temporary else popup that tells if an objects could not load
+        if beh and model and x and y and z then
+          spawn_sync_object(beh, model, x, y, z, function(o)
+            -- o.oBehParams = behParams
+            o.oModSpawnedFlag = 1
+            -- o.oModBhvID = behavior
+            o.oModModelID = model
+
+            o.oFaceAngleYaw = yaw
+            o.oFaceAnglePitch = pitch
+            o.oFaceAngleRoll = roll
+
+            -- o.oModSavedPitch = pitch
+            -- o.oModSavedYaw   = yaw
+            -- o.oModSavedRoll  = roll
+
+            o.header.gfx.angle.x = pitch
+            o.header.gfx.angle.y = yaw
+            o.header.gfx.angle.z = roll
+            o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+
+
+            -- I set all these variables cause some objects like sinking rocks
+            -- and sinking platforms get spawned with correct yaw, pitch and
+            -- roll but then get rotated to a default position for some reason
+            -- (some function)(even though x, y and z are correct)
+            --
+            -- obj.oTimer = 0  -- should reset timer so behavior doesn't think
+            -- it's already "settled", but it does not work
+            o.oTimer = 0
+            o.oMoveAngleYaw = yaw
+            o.oFaceAngleYaw = yaw
+            o.oMoveAnglePitch = pitch
+            o.oFaceAnglePitch = pitch
+            o.oMoveAngleRoll = roll
+            o.oFaceAngleRoll = roll
+            -- -- Optional but often needed for synced/persistent objects
+            -- obj.oVelX = 0
+            -- obj.oVelY = 0
+            -- obj.oVelZ = 0
+            -- obj.oForwardVel = 0
+        
+            -- -- If the behavior uses home angles:
+            -- obj.oHomeX = obj.oPosX
+            -- obj.oHomeY = obj.oPosY
+            -- obj.oHomeZ = obj.oPosZ
+            --
+
+            -- print(string.format('oHomeX: %.15f', o.oHomeX))
+            -- print(string.format('oHomeY: %.15f', o.oHomeY))
+            -- print(string.format('oHomeZ: %.15f', o.oHomeZ))
+
+            network_init_object(o, true, {
+              "oFaceAngleYaw",
+              "oFaceAnglePitch",
+              "oFaceAngleRoll",
+              "oModSpawnedFlag",
+              "oModModelID",
+              -- "oModSavedPitch",
+              -- "oModSavedYaw",
+              -- "oModSavedRoll"
+            })
+          end)
+
+          numObjectsLoaded = numObjectsLoaded + 1
+        end
+      end
+    end
+  end
+
+  -- gAngleFixFrames = 8
+  -- gAngleFixFrames = 60
+  djui_popup_create(string.format("\\#00ff00\\Map loaded: %s\\nObjects spawned: %d", filename, numObjectsLoaded), 4)
+
+  return true
+end
+hook_chat_command("loadmap", "[name] Load saved map <name> or default map if no name given", loadmap)
+
+-- hook_event(HOOK_UPDATE, function()
+--     -- if not gDoAngleFix then return end
+--     if gAngleFixFrames <= 0 then return end
+--     gAngleFixFrames = gAngleFixFrames - 1
+-- 
+-- 
+--     for list = 0, NUM_OBJ_LISTS - 1 do
+--         local o = obj_get_first(list)
+--         while o ~= nil do
+--             -- if o.oModSpawnedFlag == 1 and o.oModSavedRoll and o.oTimer >= 1 and o.oTimer <= 8 then
+--             -- if o.oModSavedRoll and o.oTimer >= 1 and o.oTimer <= 8 then
+--             if o.oModSavedRoll and o.oTimer >= 10 and o.oTimer <= 120 then
+--               print('inhook')
+--               o.oFaceAnglePitch = o.oModSavedPitch
+--               o.oFaceAngleYaw   = o.oModSavedYaw
+--               o.oFaceAngleRoll  = o.oModSavedRoll
+-- 
+--               o.header.gfx.angle.x = o.oModSavedPitch
+--               o.header.gfx.angle.y = o.oModSavedYaw
+--               o.header.gfx.angle.z = o.oModSavedRoll
+-- 
+--               o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+--             end
+--             o = obj_get_next(o)
+--         end
+--     end
+-- end)
 
 -- ====================== PERSONAL RESET (any player) ======================
 -- Works in ALL situations (including soft-locks, 0 HP under logs, broken dialogues, etc.)
