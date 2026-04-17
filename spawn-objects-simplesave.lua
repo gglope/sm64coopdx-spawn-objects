@@ -1,14 +1,20 @@
 -- name: Spawn Objects simplesave (beta)
--- description: Lets players spawn objects from a categorized menu
+-- description: Spawn, delete, save, load (host only) objects (save function, no persistence)
 
--- KNOWN BUGS:
--- - When an object id deleted and the player saves right after, that
+-- KNOWN_BUGS:
+-- - (1) When an object id deleted and the player saves right after, that
 -- object might appears in the table because still fullt despawned. When you
 -- loadmap you can bump into an invisible object
--- TODO: - If player uses /savemap while wooden logs are rotated, that pitch is
+-- TODO: - (2) If player uses /savemap while wooden logs are rotated, that pitch is
 -- saved in the file, and when map is loaded, the log will have that pitch
 -- despite not rotating. Maybe a variable in `local categories` that tell to
 -- reset pitch on save?
+-- - (3) When spawning a tilted object while side jumping, the object will be
+-- spawned facing the wrong direction
+
+-- DOC
+-- spawnX, spawnY, spawnZ are relative values, while spawnPitch, spawnRoll and
+-- spawnYaw are absolute values
 
 local vowels = {
     ["A"] = true, ["E"] = true, ["I"] = true, ["O"] = true, ["U"] = true
@@ -20,13 +26,9 @@ local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on
 -- local gAngleFixFrames = 0   -- In these N frames, code will be run to fix angles of spawned objects in loadmap
 
 -- TODO: can we have less that unsigned 32 to consume even less memory?
--- define_custom_obj_fields({
---     oModSpawnedFlag = 'u32'  -- mod spawned objects are flagged
---     oModModelID = 's32'  -- model id, saved into the object itself
--- })
 define_custom_obj_fields({
-    oModSpawnedFlag = 'u32',
-    oModModelID = 's32',
+    oModSpawnedFlag = 'u32',  -- mod spawned objects are flagged
+    oModModelID = 's32',  -- model id, saved into the object itself
     -- oModSavedPitch = 's32',
     -- oModSavedYaw = 's32',
     -- oModSavedRoll = 's32',
@@ -39,6 +41,31 @@ local function on_guest_deletion_toggle(index, value)
         gGlobalSyncTable.allowGuestDeletion = value
     end
 end
+if network_is_server() then                                                    
+    hook_mod_menu_checkbox("Allow Guest Object Deletion", true, on_guest_deletion_toggle)
+end
+-- NOT WORKING
+-- if network_is_server() then
+--     gGlobalSyncTable.allowGuestDeletion = mod_storage_load_bool("allow_guest_deletion") ~= false
+-- end
+-- local function on_guest_deletion_toggle(_, value)
+--     if network_is_server() then
+--         gGlobalSyncTable.allowGuestDeletion = value
+--         mod_storage_save_bool("allow_guest_deletion", value)
+--     end
+-- end
+-- if network_is_server() then
+--     hook_mod_menu_checkbox("Allow Guest Object Deletion", gGlobalSyncTable.allowGuestDeletion, on_guest_deletion_toggle)
+-- end
+
+
+-- Menu: spawn objects always upright?
+local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or false
+local function onUprightToggle(index, value)
+    spawnObjectsUpright = value
+    mod_storage_save_bool("spawn_objects_upright", value)
+end
+hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightToggle)
 
 -- Menu categories and subcategories
 local categories = {
@@ -66,7 +93,7 @@ local categories = {
         name = "Platforms",
         items = {
             {name = "Wood piece", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllWoodPiece, spawnYOffset = -100},
-            -- Logs get pitch ~= 0 when rotated
+            -- Logs get pitch ~= 0 when saved
             { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnYOffset = -250 },
             {name = "Log LLL", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnYOffset = -250},
             { behavior = id_bhvTree, model = E_MODEL_BUBBLY_TREE, name = "Tree", spawnOffset = 250, spawnYOffset = -100 },
@@ -94,7 +121,9 @@ local categories = {
             { behavior = id_bhvSquishablePlatform, model = E_MODEL_BITFS_STRETCHING_PLATFORMS, name = "Stretching Platforms", spawnOffset = 0, spawnYOffset = -120 },
             {name = "Koopa flag", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaFlag, spawnOffset = 200, spawnYOffset = 20 },
             -- {name = "Koopa race endpoint", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaRaceEndpoint},
-            { behavior = id_bhvKickableBoard, model = E_MODEL_WF_KICKABLE_BOARD, name = "Kickable Board", spawnYOffset = -30 },
+            -- TODO: spawna al contrario
+            -- { behavior = id_bhvKickableBoard, model = E_MODEL_WF_KICKABLE_BOARD, name = "Kickable Board", spawnYOffset = -30, spawnPitch = 32768},
+            { behavior = id_bhvKickableBoard, model = E_MODEL_WF_KICKABLE_BOARD, name = "Kickable Board", spawnYOffset = -30},
             { behavior = id_bhvLllRotatingHexagonalRing, model = E_MODEL_LLL_ROTATING_HEXAGONAL_RING, name = "Spinning Hexagon" },
             {name = "Bitfs elevator", behavior = id_bhvActivatedBackAndForthPlatform, model = E_MODEL_BITFS_ELEVATOR, spawnOffset = 100, spawnYOffset = -150},
             {name = "Tilting floor platform", behavior = id_bhvBbhTiltingTrapPlatform, model = E_MODEL_BBH_TILTING_FLOOR_PLATFORM, spawnYOffset = -200},
@@ -256,19 +285,36 @@ local categories = {
         }
     },
     {
+        name = "Tilted objects",
+        items = {
+          {name = "Wood piece", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllWoodPiece, spawnYOffset = 100, spawnPitch = 16384, spawnRoll = 32768},
+          -- {name = "Sinking rock block", model = E_MODEL_LLL_SINKING_ROCK_BLOCK, behavior = id_bhvLllSinkingRockBlock, spawnOffset = 200, spawnYOffset = -200, spawnPitch = 16384, spawnRoll = 0},
+          {name = "Sinking rock block", model = E_MODEL_LLL_SINKING_ROCK_BLOCK, behavior = id_bhvLllSinkingRockBlock, spawnOffset = 200, spawnYOffset = -200, spawnPitch = 16384, spawnRoll = 32768},
+          -- { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnOffset = -100, spawnYOffset = -1100, spawnRoll = 16384 },
+          { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnOffset = -100, spawnYOffset = -1100, spawnRoll = 16384 },
+          {name = "Log LLL", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnOffset = -100, spawnYOffset = -1100, spawnRoll = 16384},
+          { behavior = id_bhvBitfsSinkingPlatforms, model = E_MODEL_BITFS_SINKING_PLATFORMS, name = "Sinking Platform", spawnOffset = 200, spawnYOffset = 200, spawnPitch = 49152 },
+          -- {name = "Sinking rectangular platform", model = E_MODEL_LLL_SINKING_RECTANGULAR_PLATFORM, behavior = id_bhvLllSinkingRectangularPlatform, spawnOffset = 100, spawnYOffset = 200, spawnPitch = 49152, spawnYaw = 32768},
+          -- {name = "Sinking square platforms", model = E_MODEL_LLL_SINKING_SQUARE_PLATFORMS, behavior = id_bhvLllSinkingSquarePlatforms, spawnRoll = 16384},
+          -- {name = "Sinking cage platform", behavior = id_bhvBitfsSinkingCagePlatform, model = E_MODEL_BITFS_SINKING_CAGE_PLATFORM, spawnOffset = 200, spawnYOffset = -150, spawnRoll = 16384},
+          -- { behavior = id_bhvSquarishPathMoving, model = E_MODEL_BITDW_SQUARE_PLATFORM, name = "Moving Pyramid", spawnOffset = 0, spawnYOffset = -80, spawnRoll = 16384},
+          -- { behavior = id_bhvTTC2DRotator, model = E_MODEL_TTC_CLOCK_HAND, name = "Clock Hand", spawnOffset = 0, spawnYOffset = -40, spawnRoll = 16384},
+        }
+    },
+    {
         name = "Useless",
         items = {
             {name = "BOWSER_BOMB_EXPLOSION", behavior = id_bhvBowserBombExplosion, model = E_MODEL_BOWSER_FLAMES},
             {name = "CAP_SWITCH", behavior = id_bhvCapSwitch, model = E_MODEL_CAP_SWITCH},
-            {name = "GRAND_STAR", model = E_MODEL_STAR, behavior = id_bhvGrandStar},
+            -- {name = "GRAND_STAR", model = E_MODEL_STAR, behavior = id_bhvGrandStar},
             {name = "JET_STREAM_WATER_RING", model = E_MODEL_WATER_RING, behavior = id_bhvJetStreamWaterRing},
             {name = "HIDDEN_STAR", model = E_MODEL_STAR, behavior = id_bhvHiddenStar},
             {name = "MANTA_RAY_WATER_RING", model = E_MODEL_WATER_RING, behavior = id_bhvMantaRayWaterRing},
         }
     },
-    {
-        name = "New",
-        items = {
+    -- {
+    --     name = "Not working",
+    --     items = {
             -- {name = "MANTA_RAY", model = E_MODEL_MANTA_RAY, behavior = id_bhvMantaRay},
             -- {name = "MIPS", model = E_MODEL_MIPS, behavior = id_bhvMips},
             -- {name = "MR_BLIZZARD_SNOWBALL", model = E_MODEL_WHITE_PARTICLE, behavior = id_bhvMrBlizzardSnowball},
@@ -319,11 +365,6 @@ local categories = {
             -- {name = "BOWSER_SUB_DOOR", behavior = id_bhvBowserSubDoor, model = E_MODEL_DDD_BOWSER_SUB_DOOR},
             -- {name = "BOWSER_TAIL_ANCHOR", behavior = id_bhvBowserTailAnchor, model = E_MODEL_ERROR_MODEL},
             -- {name = "BREATH_PARTICLE_SPAWNER", behavior = id_bhvBreathParticleSpawner, model = E_MODEL_ERROR_MODEL},
-        }
-    },
-    -- {
-    --     name = "Not working",
-    --     items = {
     --         {name = "MONEYBAG", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybag},
     --         {name = "MOAT_GRILLS", model = E_MODEL_CASTLE_GROUNDS_VCUTM_GRILL, behavior = id_bhvMoatGrills},
     --         {name = "GIANT_POLE", model = E_MODEL_ERROR_MODEL, behavior = id_bhvGiantPole},
@@ -363,10 +404,7 @@ local function get_player_data(playerIndex)
     return playerData[playerIndex]
 end
 
--- ====================== MENU NAVIGATION ======================
--- D-Pad Up/Down = navigate list
--- D-Pad Right   = enter submenu (from main) or next category (while in submenu)
--- D-Pad Left    = back to main menu (from submenu)
+-- Menu navigation
 function move_selection(m)
     local buttons = m.controller.buttonPressed
     if buttons & U_JPAD ~= 0 then
@@ -449,9 +487,27 @@ function spawn_selected(m)
 
     -- TODO: I think `local o = ` is useless
     local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
-      o.oFaceAngleYaw = m.faceAngle.y
-      o.oFaceAnglePitch = m.faceAngle.x
-      o.oFaceAngleRoll = m.faceAngle.z
+      -- See KNOWN_BUGS (3) at the top of this file
+      -- spawn rotated when mario spawns them during a side flip (especially
+      -- with Tilted objects)
+      o.oFaceAngleYaw = obj.spawnYaw or m.faceAngle.y
+      -- o.oFaceAnglePitch = obj.spawnPitch or 0
+      -- o.oFaceAngleRoll = obj.spawnRoll or 0
+
+      if spawnObjectsUpright then
+        -- print('spawnObjectsUpright')
+        o.oFaceAnglePitch = obj.spawnPitch or 0
+        o.oFaceAngleRoll = obj.spawnRoll or 0
+      else
+        -- print('not spawnObjectsUpright')
+        o.oFaceAnglePitch = obj.spawnPitch or m.faceAngle.x
+        o.oFaceAngleRoll = obj.spawnRoll or m.faceAngle.z
+      end
+      o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
+
+      -- print('faceangle x: ' .. m.faceAngle.x)
+      -- print('faceangle y: ' .. m.faceAngle.y)
+      -- print('faceangle z: ' .. m.faceAngle.z)
 
       -- The values of oHome* is slighty different from the ones of the spawn*
       -- variables. This solution is not working
@@ -597,6 +653,7 @@ local function handle_object_deletion(m)
     end
 end
 
+-- local function savemap(name)
 function savemap(name)
     local modFs = mod_fs_get() or mod_fs_create()
     if not modFs then
@@ -605,31 +662,33 @@ function savemap(name)
     end
 
     name = name or "default"
-    filename = 'map_' .. name .. '.sav'
+    local filename = 'map_' .. name .. '.sav'
 
     local file = modFs:get_file(filename) or modFs:create_file(filename, true)
     file:erase(file.size)  -- clear old data
     file:set_text_mode(true)
     file:rewind()
 
-    local savedObjects = {}
+    local savedCount = 0
 
-    for list = 0, NUM_OBJ_LISTS -1 do
+    for list = 0, NUM_OBJ_LISTS - 1 do
       local o = obj_get_first(list)
       while o ~= nil do
         if o.oModSpawnedFlag == 1 then
-        -- TODO: bug che vengono salvato oggetti eliminati
+        -- TODO: bug that causes deleted objects to be saved
         -- if o.oModSpawnedFlag == 1 and (o.activeFlags & ACTIVE_FLAG_ACTIVE) ~= 0 then
           file:write_string(string.format(
             -- "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
             "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
-            get_id_from_behavior(o.behavior), 
+            get_id_from_behavior(o.behavior),
             -- obj_get_model_id_extended(o),
             -- o.oModBhvID,
             o.oModModelID,
             -- o.oPosX,
             -- o.oPosY,
             -- o.oPosZ,
+            -- Using oHome* variables instead of oPos* because i want the spawn
+            -- position, not the position of the object at save time
             o.oHomeX,
             o.oHomeY,
             o.oHomeZ,
@@ -641,33 +700,14 @@ function savemap(name)
             -- o.oFaceAngleRoll,
             o.oBehParams or 0
           ))
+          savedCount = savedCount + 1
         end
         o = obj_get_next(o)
       end
     end
-    -- for list = 0, NUM_OBJ_LISTS -1 do
-    --   print('in for')
-    --   local o = obj_get_first(list)
-    --   while o ~= nil do
-    --     print('in while')
-    --     if o.oModSpawnedFlag == 1 then
-    --       print('in if')
-    --       table.insert(savedObjects, {
-    --           behavior = o.behavior,
-    --           model = o.header.gfx,
-    --           -- behavior = o.oBehavior,      -- or behavior name/id
-    --           -- model = o.oGraphNode,        -- or whatever you use
-    --           pos = {x = o.oPosX, y = o.oPosY, z = o.oPosZ},
-    --           rot = {x = o.oFaceAnglePitch, y = o.oFaceAngleYaw, z = o.oFaceAngleRoll},
-    --           -- add any other data you need (params, scale, custom fields, etc.)
-    --       })
-    --     end
-    --     o = obj_get_next(o)
-    --   end
-    -- end
 
     modFs:save()
-    djui_popup_create(string.format("\\#00ff00\\Map saved. %s\\nObjects number: %d", filename, #savedObjects), 3)
+    djui_popup_create(string.format("\\#00ff00\\Map saved. %s\\nObjects number: %d", filename, savedCount), 3)
 
     return true
 end
@@ -804,38 +844,9 @@ local function loadmap(name)
 
   return true
 end
-hook_chat_command("loadmap", "[name] Load saved map <name> or default map if no name given", loadmap)
+hook_chat_command("loadmap", "[name] Load map <name> or default if no name given (host only)", loadmap)
 
--- hook_event(HOOK_UPDATE, function()
---     -- if not gDoAngleFix then return end
---     if gAngleFixFrames <= 0 then return end
---     gAngleFixFrames = gAngleFixFrames - 1
--- 
--- 
---     for list = 0, NUM_OBJ_LISTS - 1 do
---         local o = obj_get_first(list)
---         while o ~= nil do
---             -- if o.oModSpawnedFlag == 1 and o.oModSavedRoll and o.oTimer >= 1 and o.oTimer <= 8 then
---             -- if o.oModSavedRoll and o.oTimer >= 1 and o.oTimer <= 8 then
---             if o.oModSavedRoll and o.oTimer >= 10 and o.oTimer <= 120 then
---               print('inhook')
---               o.oFaceAnglePitch = o.oModSavedPitch
---               o.oFaceAngleYaw   = o.oModSavedYaw
---               o.oFaceAngleRoll  = o.oModSavedRoll
--- 
---               o.header.gfx.angle.x = o.oModSavedPitch
---               o.header.gfx.angle.y = o.oModSavedYaw
---               o.header.gfx.angle.z = o.oModSavedRoll
--- 
---               o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
---             end
---             o = obj_get_next(o)
---         end
---     end
--- end)
-
--- ====================== PERSONAL RESET (any player) ======================
--- Works in ALL situations (including soft-locks, 0 HP under logs, broken dialogues, etc.)
+-- respawn
 hook_chat_command("die", "Use this to die", function(msg)
     local m = gMarioStates[0]
     -- local np = gNetworkPlayers[0]
@@ -856,24 +867,31 @@ hook_chat_command("die", "Use this to die", function(msg)
     return true
 end)
 
--- ====================== RENDERING ======================
+-- menu
 function render_menu()
+    -- This moves the entire menu up or down
+    local offsetY = 70
+
     djui_hud_set_resolution(RESOLUTION_DJUI)
 
     -- background
     djui_hud_set_color(0, 0, 0, 200)
-    djui_hud_render_rect(8, 68, 370, 495)
+    -- djui_hud_render_rect(8, 68, 370, 495)
+    djui_hud_render_rect(8, 68 + offsetY, 370, 495)
 
     -- title
     djui_hud_set_color(255, 100, 0, 255)
     if inSubmenu then
-        djui_hud_print_text(categories[selectedCategory].name:upper(), 20, 78, 1.2)
+        -- djui_hud_print_text(categories[selectedCategory].name:upper(), 20, 78, 1.2)
+        djui_hud_print_text(categories[selectedCategory].name:upper(), 20, 78 + offsetY, 1.2)
     else
-        djui_hud_print_text("OBJECT SPAWNER", 20, 78, 1.2)
+        -- djui_hud_print_text("OBJECT SPAWNER", 20, 78, 1.2)
+        djui_hud_print_text("OBJECT SPAWNER", 20, 78 + offsetY, 1.2)
     end
 
     local VISIBLE_ITEMS = 15
-    local startY = 120
+    -- local startY = 120
+    local startY = 120 + offsetY 
 
     if inSubmenu then
         -- show objects inside the selected category
@@ -917,8 +935,10 @@ function render_menu()
 
     -- instructions at bottom
     djui_hud_set_color(180, 180, 180, 200)
-    djui_hud_print_text("D-PAD L/R = submenu    X = spawn", 25, 510, 0.85)
-    djui_hud_print_text("Y = delete nearest object", 25, 510 + 20, 0.85)
+    -- djui_hud_print_text("D-PAD L/R = submenu    X = spawn", 25, 510, 0.85)
+    -- djui_hud_print_text("Y = delete nearest object", 25, 510 + 20, 0.85)
+    djui_hud_print_text("D-PAD L/R = submenu    X = spawn", 25, 510 + offsetY, 0.85)
+    djui_hud_print_text("Y = delete nearest object", 25, 530 + offsetY, 0.85)
 end
 
 function render_cooldown_timer()

@@ -1,9 +1,22 @@
 # Intro
 
-This mod is still in development.
+THIS MOD IS STILL IN DEVELOPMENT.
 
-Spawn objects from a categorized menu and delete nearest object.
-Dpending on the script version more functions are available.
+Spawn objects from a categorized menu and delete nearest object. Dending on the script version more functions are available (for example save and persistence).
+
+# Menu options
+
+Available to anyone:
+
+- Spawn Objects Upright:
+  - default: true
+  - If enabled, objects will be tilted based on mario face angle. For example, if you spawn a Sinking platform while diving, the platform will be spawned inclined
+
+Available to host only:
+
+- Allow Guest Object Deletion:
+  - default: true
+  - If enabled, all connected Marios will be able to delete nearest object
 
 # spawn-objects
 
@@ -17,11 +30,9 @@ The simpler one. Spawn objects using a menu and delete the nearest object.
 
 TODO
 
-# spawn-objects-new
+# spawn-objects-simplesave
 
-NOT WORKING
-
-Adds spaned objects persistence: if all player exit a map, all created objects despawn but are respawned when another player enters the same map again. All the work is shifted to the host device:
+Adds save map functionality, but does not track objects. Every spawned object is marked, so that during save process only the marked objects will be saved.
 
 - spawning code is executed on the host device, despite who launched it
 - created objects are tracked on the host device only
