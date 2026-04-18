@@ -678,8 +678,8 @@ function savemap(name)
         -- TODO: bug that causes deleted objects to be saved
         -- if o.oModSpawnedFlag == 1 and (o.activeFlags & ACTIVE_FLAG_ACTIVE) ~= 0 then
           file:write_string(string.format(
-            "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
-            -- "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
+            -- "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
+            "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
             get_id_from_behavior(o.behavior),
             -- obj_get_model_id_extended(o),
             -- o.oModBhvID,

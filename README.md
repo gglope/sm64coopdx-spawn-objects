@@ -38,3 +38,13 @@ Adds save map functionality, but does not track objects. Every spawned object is
 - created objects are tracked on the host device only
 - persistence (as said above)
 
+# spawn-obejcts-persistence
+
+IN DEVELOPMENT
+
+Tracks spanwed object in tables. Enables save/load map and persistence (objects despawned from last player exiting a level gets respawned when a player enter that level)
+
+# Useful info about developing
+
+- gGlobalSyncTable are not good to track the obejct
+

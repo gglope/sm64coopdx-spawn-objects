@@ -1,5 +1,20 @@
--- name: Spawn Objects (beta)
--- description: Lets players spawn objects from a categorized menu
+-- name: Spawn Objects persistence (beta)
+-- description: Spawn, delete, save, load (host only) objects (save function, persistence)
+
+-- KNOWN_BUGS:
+-- - (1) When an object id deleted and the player saves right after, that
+-- object might appears in the table because still fullt despawned. When you
+-- loadmap you can bump into an invisible object
+-- TODO: - (2) If player uses /savemap while wooden logs are rotated, that pitch is
+-- saved in the file, and when map is loaded, the log will have that pitch
+-- despite not rotating. Maybe a variable in `local categories` that tell to
+-- reset pitch on save?
+-- - (3) When spawning a tilted object while side jumping, the object will be
+-- spawned facing the wrong direction
+
+-- DOC
+-- spawnX, spawnY, spawnZ are relative values, while spawnPitch, spawnRoll and
+-- spawnYaw are absolute values
 
 local vowels = {
     ["A"] = true, ["E"] = true, ["I"] = true, ["O"] = true, ["U"] = true
@@ -7,7 +22,22 @@ local vowels = {
 
 -- local COOLDOWN_FRAMES = 10
 local COOLDOWN_FRAMES = 80
-local SPEED_MULTIPLIER = 5.0 -- it was 1.5 . Adjusts object spawn position base on Mario speed
+local COOLDOWN_FRAMES_DEL = 10
+local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+
+-- Packets type. Will be used to update the table of tracked objects on every client
+local PACKET_ADD_OBJECT = 0
+local PACKET_DELETE_OBJECT = 1
+-- local PACKET_REQUEST_LIST  = 2
+-- local PACKET_FULL_LIST     = 3
+local tracked_objects = {}
+local next_object_id = 1  -- id of tracked objects
+
+-- -- TODO: can we have less that unsigned 32 to consume even less memory?
+-- define_custom_obj_fields({
+--     -- oModSpawnedFlag = 'u32',  -- mod spawned objects are flagged
+--     oModModelID = 's32',  -- model id, saved into the object itself
+-- })
 
 -- Menu: allow guest object deletion
 gGlobalSyncTable.allowGuestDeletion = true
@@ -16,6 +46,31 @@ local function on_guest_deletion_toggle(index, value)
         gGlobalSyncTable.allowGuestDeletion = value
     end
 end
+if network_is_server() then                                                    
+    hook_mod_menu_checkbox("Allow Guest Object Deletion", true, on_guest_deletion_toggle)
+end
+-- NOT WORKING
+-- if network_is_server() then
+--     gGlobalSyncTable.allowGuestDeletion = mod_storage_load_bool("allow_guest_deletion") ~= false
+-- end
+-- local function on_guest_deletion_toggle(_, value)
+--     if network_is_server() then
+--         gGlobalSyncTable.allowGuestDeletion = value
+--         mod_storage_save_bool("allow_guest_deletion", value)
+--     end
+-- end
+-- if network_is_server() then
+--     hook_mod_menu_checkbox("Allow Guest Object Deletion", gGlobalSyncTable.allowGuestDeletion, on_guest_deletion_toggle)
+-- end
+
+
+-- Menu: spawn objects always upright?
+local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or false
+local function onUprightToggle(index, value)
+    spawnObjectsUpright = value
+    mod_storage_save_bool("spawn_objects_upright", value)
+end
+hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightToggle)
 
 -- Menu categories and subcategories
 local categories = {
@@ -43,6 +98,7 @@ local categories = {
         name = "Platforms",
         items = {
             {name = "Wood piece", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllWoodPiece, spawnYOffset = -100},
+            -- Logs get pitch ~= 0 when saved
             { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnYOffset = -250 },
             {name = "Log LLL", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnYOffset = -250},
             { behavior = id_bhvTree, model = E_MODEL_BUBBLY_TREE, name = "Tree", spawnOffset = 250, spawnYOffset = -100 },
@@ -70,7 +126,9 @@ local categories = {
             { behavior = id_bhvSquishablePlatform, model = E_MODEL_BITFS_STRETCHING_PLATFORMS, name = "Stretching Platforms", spawnOffset = 0, spawnYOffset = -120 },
             {name = "Koopa flag", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaFlag, spawnOffset = 200, spawnYOffset = 20 },
             -- {name = "Koopa race endpoint", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaRaceEndpoint},
-            { behavior = id_bhvKickableBoard, model = E_MODEL_WF_KICKABLE_BOARD, name = "Kickable Board", spawnYOffset = -30 },
+            -- TODO: spawna al contrario
+            -- { behavior = id_bhvKickableBoard, model = E_MODEL_WF_KICKABLE_BOARD, name = "Kickable Board", spawnYOffset = -30, spawnPitch = 32768},
+            { behavior = id_bhvKickableBoard, model = E_MODEL_WF_KICKABLE_BOARD, name = "Kickable Board", spawnYOffset = -30},
             { behavior = id_bhvLllRotatingHexagonalRing, model = E_MODEL_LLL_ROTATING_HEXAGONAL_RING, name = "Spinning Hexagon" },
             {name = "Bitfs elevator", behavior = id_bhvActivatedBackAndForthPlatform, model = E_MODEL_BITFS_ELEVATOR, spawnOffset = 100, spawnYOffset = -150},
             {name = "Tilting floor platform", behavior = id_bhvBbhTiltingTrapPlatform, model = E_MODEL_BBH_TILTING_FLOOR_PLATFORM, spawnYOffset = -200},
@@ -232,6 +290,23 @@ local categories = {
         }
     },
     {
+        name = "Tilted objects",
+        items = {
+          {name = "Wood piece", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllWoodPiece, spawnYOffset = 100, spawnPitch = 16384, spawnRoll = 32768},
+          -- {name = "Sinking rock block", model = E_MODEL_LLL_SINKING_ROCK_BLOCK, behavior = id_bhvLllSinkingRockBlock, spawnOffset = 200, spawnYOffset = -200, spawnPitch = 16384, spawnRoll = 0},
+          {name = "Sinking rock block", model = E_MODEL_LLL_SINKING_ROCK_BLOCK, behavior = id_bhvLllSinkingRockBlock, spawnOffset = 200, spawnYOffset = -200, spawnPitch = 16384, spawnRoll = 32768},
+          -- { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnOffset = -100, spawnYOffset = -1100, spawnRoll = 16384 },
+          { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log", spawnOffset = -100, spawnYOffset = -1100, spawnRoll = 16384 },
+          {name = "Log LLL", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnOffset = -100, spawnYOffset = -1100, spawnRoll = 16384},
+          { behavior = id_bhvBitfsSinkingPlatforms, model = E_MODEL_BITFS_SINKING_PLATFORMS, name = "Sinking Platform", spawnOffset = 200, spawnYOffset = 200, spawnPitch = 49152 },
+          -- {name = "Sinking rectangular platform", model = E_MODEL_LLL_SINKING_RECTANGULAR_PLATFORM, behavior = id_bhvLllSinkingRectangularPlatform, spawnOffset = 100, spawnYOffset = 200, spawnPitch = 49152, spawnYaw = 32768},
+          -- {name = "Sinking square platforms", model = E_MODEL_LLL_SINKING_SQUARE_PLATFORMS, behavior = id_bhvLllSinkingSquarePlatforms, spawnRoll = 16384},
+          -- {name = "Sinking cage platform", behavior = id_bhvBitfsSinkingCagePlatform, model = E_MODEL_BITFS_SINKING_CAGE_PLATFORM, spawnOffset = 200, spawnYOffset = -150, spawnRoll = 16384},
+          -- { behavior = id_bhvSquarishPathMoving, model = E_MODEL_BITDW_SQUARE_PLATFORM, name = "Moving Pyramid", spawnOffset = 0, spawnYOffset = -80, spawnRoll = 16384},
+          -- { behavior = id_bhvTTC2DRotator, model = E_MODEL_TTC_CLOCK_HAND, name = "Clock Hand", spawnOffset = 0, spawnYOffset = -40, spawnRoll = 16384},
+        }
+    },
+    {
         name = "Useless",
         items = {
             {name = "BOWSER_BOMB_EXPLOSION", behavior = id_bhvBowserBombExplosion, model = E_MODEL_BOWSER_FLAMES},
@@ -242,9 +317,9 @@ local categories = {
             {name = "MANTA_RAY_WATER_RING", model = E_MODEL_WATER_RING, behavior = id_bhvMantaRayWaterRing},
         }
     },
-    {
-        name = "New",
-        items = {
+    -- {
+    --     name = "Not working",
+    --     items = {
             -- {name = "MANTA_RAY", model = E_MODEL_MANTA_RAY, behavior = id_bhvMantaRay},
             -- {name = "MIPS", model = E_MODEL_MIPS, behavior = id_bhvMips},
             -- {name = "MR_BLIZZARD_SNOWBALL", model = E_MODEL_WHITE_PARTICLE, behavior = id_bhvMrBlizzardSnowball},
@@ -295,11 +370,6 @@ local categories = {
             -- {name = "BOWSER_SUB_DOOR", behavior = id_bhvBowserSubDoor, model = E_MODEL_DDD_BOWSER_SUB_DOOR},
             -- {name = "BOWSER_TAIL_ANCHOR", behavior = id_bhvBowserTailAnchor, model = E_MODEL_ERROR_MODEL},
             -- {name = "BREATH_PARTICLE_SPAWNER", behavior = id_bhvBreathParticleSpawner, model = E_MODEL_ERROR_MODEL},
-        }
-    },
-    -- {
-    --     name = "Not working",
-    --     items = {
     --         {name = "MONEYBAG", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybag},
     --         {name = "MOAT_GRILLS", model = E_MODEL_CASTLE_GROUNDS_VCUTM_GRILL, behavior = id_bhvMoatGrills},
     --         {name = "GIANT_POLE", model = E_MODEL_ERROR_MODEL, behavior = id_bhvGiantPole},
@@ -334,15 +404,15 @@ local inSubmenu = false
 
 local function get_player_data(playerIndex)
     if not playerData[playerIndex] then
-        playerData[playerIndex] = { cooldown = 0 }
+        playerData[playerIndex] = { 
+            cooldown = 0,
+            deletionCooldown = 0 
+        }
     end
     return playerData[playerIndex]
 end
 
--- ====================== MENU NAVIGATION ======================
--- D-Pad Up/Down = navigate list
--- D-Pad Right   = enter submenu (from main) or next category (while in submenu)
--- D-Pad Left    = back to main menu (from submenu)
+-- Menu navigation
 function move_selection(m)
     local buttons = m.controller.buttonPressed
     if buttons & U_JPAD ~= 0 then
@@ -396,6 +466,81 @@ function move_selection(m)
     play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
 end
 
+-- Packets are used to inform other Marios of created/deleted objects, so that
+-- they can update they're local table of tracket objects
+local function on_packet_receive(packet)
+    local level = packet.level
+
+    if packet.type == PACKET_ADD_OBJECT then
+        if not tracked_spawned_objects[level] then tracked_spawned_objects[level] = {} end
+        -- table.insert(tracked_spawned_objects[level], packet.entry)
+        table.insert(tracked_spawned_objects[level], {
+            id = packet.id,
+            beh = packet.beh,
+            model = packet.model,
+            x = packet.x,
+            y = packet.y,
+            z = packet.z,
+            pitch = packet.pitch,
+            yaw = packet.yaw,
+            roll = packet.roll,
+            behParams = packet.behParams
+        })
+    elseif packet.type == PACKET_DELETE_OBJECT then
+        local list = tracked_spawned_objects[level]
+        if list then
+            for i = #list, 1, -1 do
+                if list[i].id == packet.id then
+                    table.remove(list, i)
+                end
+            end
+        end
+    end
+end
+hook_event(HOOK_ON_PACKET_RECEIVE, on_packet_receive)
+
+function track_object(levelNum, beh, model, x, y, z, pitch, yaw, roll, behParams)
+  if not tracked_objects[levelNum] then
+    tracked_objects[levelNum] = {}
+  end
+
+  -- table.insert(tracked_objects[levelNum], entry)
+  table.insert(tracked_objects[levelNum], {
+    id = next_object_id,
+    beh = beh,
+    model = model,
+    x = x,
+    y = y,
+    z = z,
+    pitch = pitch,
+    yaw = yaw,
+    roll = roll,
+    behParams = behParams
+  })
+
+  print('PACKET_ADD_OBJECT')
+
+  -- Tell other Marios to add the new objects in their local table
+  -- Forced to do like this cause can't send tables using network_send
+  network_send(true, {
+    type = PACKET_ADD_OBJECT,
+    level = levelNum,
+    id = next_object_id,
+    beh = beh,
+    model = model,
+    x = x,
+    y = y,
+    z = z,
+    pitch = pitch,
+    yaw = yaw,
+    roll = roll,
+    behParams = behParams
+  })
+
+  next_object_id = next_object_id + 1
+end
+
+
 function spawn_selected(m)
     if m.controller.buttonPressed & X_BUTTON == 0 then return end
     if not inSubmenu then return end   -- only spawn when inside a submenu
@@ -419,18 +564,97 @@ function spawn_selected(m)
     local spawnY = m.pos.y + (obj.spawnYOffset or 0)
     local spawnZ = m.pos.z + effectiveOffset * coss(m.faceAngle.y)
 
+    local finalYaw = obj.spawnYaw or m.faceAngle.y
+    if spawnObjectsUpright then
+      -- print('spawnObjectsUpright')
+      local finalPitch = obj.spawnPitch or 0
+      local finalRoll = obj.spawnRoll or 0
+    else
+      -- print('not spawnObjectsUpright')
+      local finalPitch = obj.spawnPitch or m.faceAngle.x
+      local finalRoll = obj.spawnRoll or m.faceAngle.z
+    end
+
     -- print(string.format('spawnX: %.15f', spawnX))
     -- print(string.format('spawnY: %.15f', spawnY))
     -- print(string.format('spawnZ: %.15f', spawnZ))
+    
+    -- Register to-be-spawned object into the tracking table
+    track_object(
+      gNetworkPlayers[0].currLevelNum,
+      obj.behavior,
+      obj.model,
+      spawnX,
+      spawnY,
+      spawnZ,
+      finalPitch,
+      finalYaw,
+      finalRoll,
+      0)  -- behParams
 
     -- TODO: I think `local o = ` is useless
     local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
-      o.oFaceAngleYaw = m.faceAngle.y
-      o.oFaceAnglePitch = m.faceAngle.x
+      -- See KNOWN_BUGS (3) at the top of this file
+      -- spawn rotated when mario spawns them during a side flip (especially
+      -- with Tilted objects)
+      o.oFaceAngleYaw = finalYaw
+      -- o.oFaceAnglePitch = obj.spawnPitch or 0
+      -- o.oFaceAngleRoll = obj.spawnRoll or 0
+
+      if spawnObjectsUpright then
+        -- print('spawnObjectsUpright')
+        o.oFaceAnglePitch = obj.spawnPitch or 0
+        o.oFaceAngleRoll = obj.spawnRoll or 0
+      else
+        -- print('not spawnObjectsUpright')
+        o.oFaceAnglePitch = obj.spawnPitch or m.faceAngle.x
+        o.oFaceAngleRoll = obj.spawnRoll or m.faceAngle.z
+      end
+      -- TODO: Stavano questo e quello sopra insieme decommentati. Capire se commentato funziona bene
+      -- o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
+
+      -- o.oModSpawnedFlag = 1
+
+      -- print('faceangle x: ' .. m.faceAngle.x)
+      -- print('faceangle y: ' .. m.faceAngle.y)
+      -- print('faceangle z: ' .. m.faceAngle.z)
+
+      -- The values of oHome* is slighty different from the ones of the spawn*
+      -- variables. This solution is not working
+      -- o.oHomeX = spawnX
+      -- o.oHomeY = spawnY
+      -- o.oHomeZ = spawnZ
+      -- o.oHomeX = o.oPosX
+      -- o.oHomeY = o.oPosY
+      -- o.oHomeZ = o.oPosZ
+
+      -- o.oFaceAnglePitch = 0
+      -- o.oFaceAngleRoll = 0
+      -- o.oModBhvID = obj.behavior
+      -- o.oModModelID = obj.model
+
+      -- For testing
+      -- o.header.gfx.angle.z = 16384
+      -- o.oFaceAngleRoll = 16384
+      o.header.gfx.angle.x = o.oFaceAnglePitch
+      o.header.gfx.angle.y = o.oFaceAngleYaw
+      o.header.gfx.angle.z = o.oFaceAngleRoll
+
+      -- --o.oTimer = 0
+      -- o.oMoveAngleYaw = m.faceAngle.y
+      -- o.oFaceAngleYaw = m.faceAngle.y
+      -- o.oMoveAnglePitch = m.faceAngle.x
+      -- o.oFaceAnglePitch = m.faceAngle.x
+      -- o.oMoveAngleRoll = m.faceAngle.z
+      -- o.oFaceAngleRoll = m.faceAngle.z
 
       network_init_object(o, true, {
         "oFaceAngleYaw",
         "oFaceAnglePitch",
+        "oFaceAngleRoll",
+        -- "oModSpawnedFlag",
+        -- "oModBhvID",
+        -- "oModModelID",
       })
     end)
 
@@ -444,65 +668,71 @@ function spawn_selected(m)
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 end
 
--- used by delete object
-local function find_nearest_object(m)
-    local nearest = nil
-    local minDistSq = 1200 * 1200   -- reasonable range limit
-
-    -- List of object lists
-    local lists = {
-        OBJ_LIST_DESTRUCTIVE,
-        OBJ_LIST_GENACTOR,
-        OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
-        OBJ_LIST_LEVEL,
-        OBJ_LIST_DEFAULT,
-        OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
-        OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
-        OBJ_LIST_SPAWNER,
-        -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
-    }
-
-    for _, list in ipairs(lists) do
-        local obj = obj_get_first(list)
-        while obj ~= nil do
-            -- Skip any player's Mario object
-            local isMarioObj = false
-            for i = 0, MAX_PLAYERS - 1 do
-                if gMarioStates[i] and gMarioStates[i].marioObj == obj then
-                    isMarioObj = true
-                    break
-                end
-            end
-
-            -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
-            local isDoor = false
-            if not isMarioObj then
-                -- local bhv = obj.behavior
-                if obj.oInteractType == INTERACT_DOOR or
-                   obj.oInteractType == INTERACT_WARP_DOOR then
-                     isDoor = true
-                end
-            end
-
-            if not isMarioObj and not isDoor then
-                local dx = obj.oPosX - m.pos.x
-                local dy = obj.oPosY - m.pos.y
-                local dz = obj.oPosZ - m.pos.z
-                local distSq = dx*dx + dy*dy + dz*dz
-                if distSq < minDistSq then
-                    minDistSq = distSq
-                    nearest = obj
-                end
-            end
-            obj = obj_get_next(obj)
-        end
-    end
-
-    return nearest
-end
+-- -- used by delete object
+-- local function find_nearest_object(m)
+--     local nearest = nil
+--     local minDistSq = 1200 * 1200   -- reasonable range limit
+-- 
+--     -- List of object lists
+--     local lists = {
+--         OBJ_LIST_DESTRUCTIVE,
+--         OBJ_LIST_GENACTOR,
+--         OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
+--         OBJ_LIST_LEVEL,
+--         OBJ_LIST_DEFAULT,
+--         OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
+--         OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
+--         OBJ_LIST_SPAWNER,
+--         -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
+--     }
+-- 
+--     for _, list in ipairs(lists) do
+--         local obj = obj_get_first(list)
+--         while obj ~= nil do
+--             -- Skip any player's Mario object
+--             local isMarioObj = false
+--             for i = 0, MAX_PLAYERS - 1 do
+--                 if gMarioStates[i] and gMarioStates[i].marioObj == obj then
+--                     isMarioObj = true
+--                     break
+--                 end
+--             end
+-- 
+--             -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
+--             local isDoor = false
+--             if not isMarioObj then
+--                 -- local bhv = obj.behavior
+--                 if obj.oInteractType == INTERACT_DOOR or
+--                    obj.oInteractType == INTERACT_WARP_DOOR then
+--                      isDoor = true
+--                 end
+--             end
+-- 
+--             if not isMarioObj and not isDoor then
+--                 local dx = obj.oPosX - m.pos.x
+--                 local dy = obj.oPosY - m.pos.y
+--                 local dz = obj.oPosZ - m.pos.z
+--                 local distSq = dx*dx + dy*dy + dz*dz
+--                 if distSq < minDistSq then
+--                     minDistSq = distSq
+--                     nearest = obj
+--                 end
+--             end
+--             obj = obj_get_next(obj)
+--         end
+--     end
+-- 
+--     return nearest
+-- end
 
 local function handle_object_deletion(m)
     if (m.controller.buttonPressed & Y_BUTTON) == 0 then return end
+
+    -- Do not allow Arena mod to use the Y button
+    -- m.controller.buttonPressed = m.controller.buttonPressed & ~Y_BUTTON
+
+    local data = get_player_data(m.playerIndex)
+    if data.deletionCooldown > 0 then return end
 
     local canDelete = network_is_server() or gGlobalSyncTable.allowGuestDeletion
 
@@ -513,28 +743,266 @@ local function handle_object_deletion(m)
         return
     end
 
-    local nearest = find_nearest_object(m)
-    if nearest then
-        -- Hide graphics immediately (fixes leftover coin shadows)
-        if nearest.header and nearest.header.gfx and nearest.header.gfx.node then
-            nearest.header.gfx.node.flags = nearest.header.gfx.node.flags | GRAPH_RENDER_INVISIBLE
-        end
+    -- local levelNum = gGlobal.level_num
+    local levelNum = gNetworkPlayers[0].currLevelNum
+    local list = tracked_objects[levelNum]
+    if not list or #list == 0 then
+      if m.playerIndex == 0 then
+        djui_popup_create("No nearby player-spawned object found", 0.5)
+      end
 
-        obj_mark_for_deletion(nearest)
-
-        -- Popup only for local player
-        if m.playerIndex == 0 then
-            djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
-        end
-    else
-        if m.playerIndex == 0 then
-            djui_popup_create("No nearby object found", 0.5)
-        end
+      -- Reset timer anyway
+      data.deletionCooldown = COOLDOWN_FRAMES_DEL
+      return
     end
+
+    local MAX_DELETION_DIST_SQ = 1200 * 1200
+
+    -- Current nearest object index and dist, cause we need to visit all
+    -- tracked objects in the level to get the real nearest
+    local nearest_idx = 1
+    local nearest_dist_sq = MAX_DELETION_DIST_SQ
+
+    for i, obj in ipairs(list) do
+      local dx = obj.x - m.pos.x
+      local dy = obj.y - m.pos.y
+      local dz = obj.z - m.pos.z
+      local dist_sq = dx*dx + dy*dy + dz*dz
+
+      if dist_sq < nearest_dist_sq then
+        nearest_dist_sq = dist_sq
+        nearest_idx = i
+      end
+    end
+
+    if nearest_dist_sq >= MAX_DELETION_DIST_SQ then
+      if m.playerIndex == 0 then
+        djui_popup_create("No nearby player-spawned object found", 0.5)
+      end
+
+      -- Timer also reset when no near objects found
+      data.deletionCooldown = COOLDOWN_FRAMES_DEL
+      return
+    end
+
+    local target = list[nearest_idx]
+
+    print('PACKET_DELETE_OBJECT')
+
+    -- Inform other Marios to also delete the object from their tables
+    network_send(true, {
+      type = PACKET_DELETE_OBJECT,
+      level = levelNum,
+      -- Don't send nearest_idx. Only reliable field is the id in the object
+      -- itself, that is always the same because is set on the spawning user
+      -- device only and then sent to the other players
+      id = target.id,
+    })
+
+    -- MAIN LINE i guess
+    obj_mark_for_deletion(list[nearest_idx])
+
+    table.remove(list, nearest_idx)
+
+    if m.playerIndex == 0 then
+        djui_popup_create("\\#44ff44\\Object deleted!", 1)
+    end
+
+    data.deletionCooldown = COOLDOWN_FRAMES_DEL
 end
 
--- ====================== PERSONAL RESET (any player) ======================
--- Works in ALL situations (including soft-locks, 0 HP under logs, broken dialogues, etc.)
+-- local function savemap(name)
+function savemap(name)
+    local modFs = mod_fs_get() or mod_fs_create()
+    if not modFs then
+        djui_popup_create("\\#ff4444\\Failed to create ModFS!", 2)
+        return true
+    end
+
+    name = name or "default"
+    local filename = 'map_' .. name .. '.sav'
+
+    local file = modFs:get_file(filename) or modFs:create_file(filename, true)
+    file:erase(file.size)  -- clear old data
+    file:set_text_mode(true)
+    file:rewind()
+
+    local savedCount = 0
+
+    for list = 0, NUM_OBJ_LISTS - 1 do
+      local o = obj_get_first(list)
+      while o ~= nil do
+        if o.oModSpawnedFlag == 1 then
+        -- TODO: bug that causes deleted objects to be saved
+        -- if o.oModSpawnedFlag == 1 and (o.activeFlags & ACTIVE_FLAG_ACTIVE) ~= 0 then
+          file:write_string(string.format(
+            -- "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
+            "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
+            get_id_from_behavior(o.behavior),
+            -- obj_get_model_id_extended(o),
+            -- o.oModBhvID,
+            o.oModModelID,
+            -- o.oPosX,
+            -- o.oPosY,
+            -- o.oPosZ,
+            -- Using oHome* variables instead of oPos* because i want the spawn
+            -- position, not the position of the object at save time
+            o.oHomeX,
+            o.oHomeY,
+            o.oHomeZ,
+            o.header.gfx.angle.x,  -- pitch
+            o.header.gfx.angle.y,  -- yaw
+            o.header.gfx.angle.z,  -- roll
+            -- o.oFaceAnglePitch,
+            -- o.oFaceAngleYaw,
+            -- o.oFaceAngleRoll,
+            o.oBehParams or 0
+          ))
+          savedCount = savedCount + 1
+        end
+        o = obj_get_next(o)
+      end
+    end
+
+    modFs:save()
+    djui_popup_create(string.format("\\#00ff00\\Map saved. %s\\nObjects number: %d", filename, savedCount), 3)
+
+    return true
+end
+hook_chat_command("savemap", "[name] Save all objects on map", savemap)
+
+local function loadmap(name)
+  if not network_is_server() then
+    if gMarioStates[0].playerIndex == 0 then
+      djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
+    end
+    return true
+  end
+
+  local modFs = mod_fs_get() or mod_fs_create()
+  if not modFs then
+      djui_popup_create("\\#ff4444\\ModFS not available!", 2)
+      return true
+  end
+
+  name = name or "default"
+  filename = 'map_' .. name .. '.sav'
+
+  local file = modFs:get_file(filename)
+  if not file or file.size == 0 then
+      djui_popup_create("\\#ff4444\\Save file not found: " .. name, 2)
+      return true
+  end
+
+  file:set_text_mode(true)
+  file:rewind()
+
+  numObjectsLoaded = 0
+  -- local line
+  while not file:is_eof() do
+    local line = file:read_line()
+
+    if line and line ~= "" then
+      local parts = {}
+      for val in string.gmatch(line, "([^,]+)") do
+        table.insert(parts, val)
+      end
+
+      -- Objects that have less that 9 fields get skipped. Clears out ghosts
+      if #parts >= 9 then
+        local beh = tonumber(parts[1])
+        local model = tonumber(parts[2])
+        local x = tonumber(parts[3])
+        local y = tonumber(parts[4])
+        local z = tonumber(parts[5])
+        local pitch = tonumber(parts[6])
+        local yaw = tonumber(parts[7])
+        -- local roll = tonumber(parts[8]) or 0
+        local roll = tonumber(parts[8])
+        local behParams = tonumber(parts[9])
+
+        -- print(string.format('X: %.15f', x))
+        -- print(string.format('Y: %.15f', y))
+        -- print(string.format('Z: %.15f', z))
+
+
+        -- TODO: Add temporary else popup that tells if an objects could not load
+        if beh and model and x and y and z then
+          spawn_sync_object(beh, model, x, y, z, function(o)
+            -- o.oBehParams = behParams
+            -- o.oModSpawnedFlag = 1
+            -- o.oModBhvID = behavior
+            -- o.oModModelID = model
+
+            o.oFaceAngleYaw = yaw
+            o.oFaceAnglePitch = pitch
+            o.oFaceAngleRoll = roll
+
+            -- o.oModSavedPitch = pitch
+            -- o.oModSavedYaw   = yaw
+            -- o.oModSavedRoll  = roll
+
+            o.header.gfx.angle.x = pitch
+            o.header.gfx.angle.y = yaw
+            o.header.gfx.angle.z = roll
+            o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+
+
+            -- I set all these variables cause some objects like sinking rocks
+            -- and sinking platforms get spawned with correct yaw, pitch and
+            -- roll but then get rotated to a default position for some reason
+            -- (some function)(even though x, y and z are correct)
+            --
+            -- obj.oTimer = 0  -- should reset timer so behavior doesn't think
+            -- it's already "settled", but it does not work
+            o.oTimer = 0
+            o.oMoveAngleYaw = yaw
+            o.oFaceAngleYaw = yaw
+            o.oMoveAnglePitch = pitch
+            o.oFaceAnglePitch = pitch
+            o.oMoveAngleRoll = roll
+            o.oFaceAngleRoll = roll
+            -- -- Optional but often needed for synced/persistent objects
+            -- obj.oVelX = 0
+            -- obj.oVelY = 0
+            -- obj.oVelZ = 0
+            -- obj.oForwardVel = 0
+        
+            -- -- If the behavior uses home angles:
+            -- obj.oHomeX = obj.oPosX
+            -- obj.oHomeY = obj.oPosY
+            -- obj.oHomeZ = obj.oPosZ
+            --
+
+            -- print(string.format('oHomeX: %.15f', o.oHomeX))
+            -- print(string.format('oHomeY: %.15f', o.oHomeY))
+            -- print(string.format('oHomeZ: %.15f', o.oHomeZ))
+
+            network_init_object(o, true, {
+              "oFaceAngleYaw",
+              "oFaceAnglePitch",
+              "oFaceAngleRoll",
+              -- "oModSpawnedFlag",
+              -- "oModModelID",
+              -- "oModSavedPitch",
+              -- "oModSavedYaw",
+              -- "oModSavedRoll"
+            })
+          end)
+
+          numObjectsLoaded = numObjectsLoaded + 1
+        end
+      end
+    end
+  end
+
+  djui_popup_create(string.format("\\#00ff00\\Map loaded: %s\\nObjects spawned: %d", filename, numObjectsLoaded), 4)
+
+  return true
+end
+hook_chat_command("loadmap", "[name] Load map <name> or default if no name given (host only)", loadmap)
+
+-- respawn
 hook_chat_command("die", "Use this to die", function(msg)
     local m = gMarioStates[0]
     -- local np = gNetworkPlayers[0]
@@ -632,26 +1100,49 @@ end
 function render_cooldown_timer()
     local m = gMarioStates[0]
     local data = get_player_data(m.playerIndex)
-    if data.cooldown <= 0 then return end
+
+    if data.cooldown <= 0 and data.deletionCooldown <= 0 then
+        return
+    end
 
     djui_hud_set_resolution(RESOLUTION_N64)
 
-    local seconds = math.floor(data.cooldown * 10 / 30) / 10
-    local text = "Spawn cooldown " .. tostring(seconds) .. "s"
-
     local scale = 0.32
     local screenWidth = djui_hud_get_screen_width()
-    local width = djui_hud_measure_text(text) * scale
-    local x = (screenWidth - width) / 2.0
     local y = 8
 
-    -- background box
-    djui_hud_set_color(0, 0, 0, 200)
-    djui_hud_render_rect(x - 4, y, width + 8, 18)
+    -- Spawn cooldown
+    if data.cooldown > 0 then
+        local seconds = math.floor(data.cooldown * 10 / 30) / 10
+        local text = "Spawn cooldown " .. tostring(seconds) .. "s"
 
-    -- text
-    djui_hud_set_color(255, 255, 255, 255)
-    djui_hud_print_text(text, x, y, scale)
+        local width = djui_hud_measure_text(text) * scale
+        local x = (screenWidth - width) / 2.0
+
+        djui_hud_set_color(0, 0, 0, 200)
+        djui_hud_render_rect(x - 4, y, width + 8, 18)
+
+        djui_hud_set_color(255, 255, 255, 255)
+        djui_hud_print_text(text, x, y, scale)
+
+        -- y = y + 22   -- move down for the next line
+        y = y + 16
+    end
+
+    -- Deletion cooldown
+    if data.deletionCooldown > 0 then
+        local seconds = math.floor(data.deletionCooldown * 10 / 30) / 10
+        local text = "Delete cooldown " .. tostring(seconds) .. "s"
+
+        local width = djui_hud_measure_text(text) * scale
+        local x = (screenWidth - width) / 2.0
+
+        djui_hud_set_color(0, 0, 0, 200)
+        djui_hud_render_rect(x - 4, y, width + 8, 18)
+
+        djui_hud_set_color(255, 255, 255, 255)
+        djui_hud_print_text(text, x, y, scale)
+    end
 end
 
 function on_hud_render()
@@ -666,6 +1157,9 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
         data.cooldown = data.cooldown - 1
+    end
+    if data.deletionCooldown > 0 then
+        data.deletionCooldown = data.deletionCooldown - 1
     end
 
     -- Y-button deletion
