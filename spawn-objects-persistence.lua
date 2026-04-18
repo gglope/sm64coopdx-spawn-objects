@@ -33,11 +33,13 @@ local PACKET_DELETE_OBJECT = 1
 local tracked_objects = {}
 local next_object_id = 1  -- id of tracked objects
 
--- -- TODO: can we have less that unsigned 32 to consume even less memory?
--- define_custom_obj_fields({
---     -- oModSpawnedFlag = 'u32',  -- mod spawned objects are flagged
---     oModModelID = 's32',  -- model id, saved into the object itself
--- })
+-- TODO: can we have less that unsigned 32 to consume even less memory?
+define_custom_obj_fields({
+    -- oModSpawnedFlag = 'u32',  -- mod spawned objects are flagged
+    -- oModModelID = 's32',  -- model id, saved into the object itself
+    oModUncompleteID = 'u32',
+    oModOwnerId = 'u32'
+})
 
 -- Menu: allow guest object deletion
 gGlobalSyncTable.allowGuestDeletion = true
@@ -475,7 +477,8 @@ local function on_packet_receive(packet)
         if not tracked_spawned_objects[level] then tracked_spawned_objects[level] = {} end
         -- table.insert(tracked_spawned_objects[level], packet.entry)
         table.insert(tracked_spawned_objects[level], {
-            id = packet.id,
+            uncompleteId= packet.uncompleteId,
+            ownerId = packet.ownerId,
             beh = packet.beh,
             model = packet.model,
             x = packet.x,
@@ -499,14 +502,15 @@ local function on_packet_receive(packet)
 end
 hook_event(HOOK_ON_PACKET_RECEIVE, on_packet_receive)
 
-function track_object(levelNum, beh, model, x, y, z, pitch, yaw, roll, behParams)
+function track_object(uncompleteId, ownerId, levelNum, beh, model, x, y, z, pitch, yaw, roll, behParams)
   if not tracked_objects[levelNum] then
     tracked_objects[levelNum] = {}
   end
 
   -- table.insert(tracked_objects[levelNum], entry)
   table.insert(tracked_objects[levelNum], {
-    id = next_object_id,
+    uncompleteId = uncompleteId,
+    ownerId = ownerId,
     beh = beh,
     model = model,
     x = x,
@@ -524,6 +528,8 @@ function track_object(levelNum, beh, model, x, y, z, pitch, yaw, roll, behParams
   -- Forced to do like this cause can't send tables using network_send
   network_send(true, {
     type = PACKET_ADD_OBJECT,
+    uncompleteId = uncompleteId,
+    ownerId = ownerId,
     level = levelNum,
     id = next_object_id,
     beh = beh,
@@ -581,6 +587,8 @@ function spawn_selected(m)
     
     -- Register to-be-spawned object into the tracking table
     track_object(
+      uncompleteId = next_object_id,
+      ownerId = gNetworkPlayers[0].currLevelNum,
       gNetworkPlayers[0].currLevelNum,
       obj.behavior,
       obj.model,
@@ -610,6 +618,15 @@ function spawn_selected(m)
         o.oFaceAnglePitch = obj.spawnPitch or m.faceAngle.x
         o.oFaceAngleRoll = obj.spawnRoll or m.faceAngle.z
       end
+
+      -- TODO: Again, they differ from the ones above
+      o.header.gfx.angle.x = o.oFaceAnglePitch
+      o.header.gfx.angle.y = o.oFaceAngleYaw
+      o.header.gfx.angle.z = o.oFaceAngleRoll
+
+      o.oModOwnerId = gNetworkPlayers[0].globalIndex
+      o.oModUncompleteID = next_object_id
+
       -- TODO: Stavano questo e quello sopra insieme decommentati. Capire se commentato funziona bene
       -- o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
 
@@ -636,9 +653,6 @@ function spawn_selected(m)
       -- For testing
       -- o.header.gfx.angle.z = 16384
       -- o.oFaceAngleRoll = 16384
-      o.header.gfx.angle.x = o.oFaceAnglePitch
-      o.header.gfx.angle.y = o.oFaceAngleYaw
-      o.header.gfx.angle.z = o.oFaceAngleRoll
 
       -- --o.oTimer = 0
       -- o.oMoveAngleYaw = m.faceAngle.y
@@ -652,11 +666,17 @@ function spawn_selected(m)
         "oFaceAngleYaw",
         "oFaceAnglePitch",
         "oFaceAngleRoll",
+        "oModUncompleteID",
+        "oModOwnerId"
         -- "oModSpawnedFlag",
         -- "oModBhvID",
         -- "oModModelID",
       })
     end)
+
+    if o then
+      next_object_id = next_object_id + 1
+    end
 
     -- print(string.format('oHomeX: %.15f', o.oHomeX))
     -- print(string.format('oHomeY: %.15f', o.oHomeY))
@@ -786,26 +806,31 @@ local function handle_object_deletion(m)
     end
 
     local target = list[nearest_idx]
+    local targetObj = sync_object_get_object(list[nearest_idx].syncID)
 
-    print('PACKET_DELETE_OBJECT')
+    if targetObj ~= nil and sync_object_is_initialized(list[nearest_idx].syncID) then
+      print('PACKET_DELETE_OBJECT')
 
-    -- Inform other Marios to also delete the object from their tables
-    network_send(true, {
-      type = PACKET_DELETE_OBJECT,
-      level = levelNum,
-      -- Don't send nearest_idx. Only reliable field is the id in the object
-      -- itself, that is always the same because is set on the spawning user
-      -- device only and then sent to the other players
-      id = target.id,
-    })
+      -- Inform other Marios to also delete the object from their tables
+      network_send(true, {
+        type = PACKET_DELETE_OBJECT,
+        level = levelNum,
+        -- Don't send nearest_idx. Only reliable field is the id in the object
+        -- itself, that is always the same because is set on the spawning user
+        -- device only and then sent to the other players
+        ownerId = target.ownerId,
+        uncompleteId = target.uncompleteId,
+      })
 
-    -- MAIN LINE i guess
-    obj_mark_for_deletion(list[nearest_idx])
+      -- TODO: Continuare qui. Magari farsi una funzione per cercare l'obj
+      -- MAIN LINE i guess
+      obj_mark_for_deletion(targetObj)
 
-    table.remove(list, nearest_idx)
+      table.remove(list, nearest_idx)
 
-    if m.playerIndex == 0 then
-        djui_popup_create("\\#44ff44\\Object deleted!", 1)
+      if m.playerIndex == 0 then
+          djui_popup_create("\\#44ff44\\Object deleted!", 1)
+      end
     end
 
     data.deletionCooldown = COOLDOWN_FRAMES_DEL
