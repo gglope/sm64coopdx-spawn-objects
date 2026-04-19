@@ -22,7 +22,7 @@ local vowels = {
 
 -- local COOLDOWN_FRAMES = 10
 local COOLDOWN_FRAMES = 80
-local COOLDOWN_FRAMES_DEL = 10
+local COOLDOWN_FRAMES_DEL = 15
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
 
 -- Packets type. Will be used to update the table of tracked objects on every client
@@ -33,12 +33,12 @@ local PACKET_DELETE_OBJECT = 1
 local tracked_objects = {}
 local next_object_id = 1  -- id of tracked objects
 
--- TODO: can we have less that unsigned 32 to consume even less memory?
+-- This two together form the id of an object
 define_custom_obj_fields({
     -- oModSpawnedFlag = 'u32',  -- mod spawned objects are flagged
     -- oModModelID = 's32',  -- model id, saved into the object itself
-    oModUncompleteID = 'u32',
-    oModOwnerId = 'u32'
+    oModPlayerId = 'u32',
+    oModObjNum = 'u32',
 })
 
 -- Menu: allow guest object deletion
@@ -114,7 +114,8 @@ local categories = {
             { behavior = id_bhvTTC2DRotator, model = E_MODEL_TTC_CLOCK_HAND, name = "Clock Hand", spawnOffset = 0, spawnYOffset = -40 },
             { behavior = id_bhvSeesawPlatform, model = E_MODEL_BITDW_SEESAW_PLATFORM, name = "Seesaw", spawnOffset = 200, spawnYOffset = -60 },
             -- Koopa flag always goes on the ground, so i make it spawn higher
-            { behavior = id_bhvLllDrawbridge, model = E_MODEL_LLL_DRAWBRIDGE_PART, name = "Drawbridge", spawnOffset = 200, spawnYOffset = -50 },
+            { behavior = id_bhvLllDrawbridge, model = E_MODEL_LLL_DRAWBRIDGE_PART, name = "Drawbridge", spawnOffset = 200, spawnYOffset = -50, spawnYaw = -16384 },
+            -- { behavior = id_bhvLllDrawbridge, model = E_MODEL_LLL_DRAWBRIDGE_PART, name = "Drawbridge", spawnOffset = 200, spawnYOffset = -50 },
             {name = "Mesh elevator", model = E_MODEL_BBH_MESH_ELEVATOR, behavior = id_bhvMeshElevator, spawnOffset = 200, spawnYOffset = -50},
             {name = "Moving octagon", model = E_MODEL_LLL_MOVING_OCTAGONAL_MESH_PLATFORM, behavior = id_bhvLllMovingOctagonalMeshPlatform, spawnOffset = 200, spawnYOffset = -200},
             {name = "Bits octagonal platform", model = E_MODEL_BITS_OCTAGONAL_PLATFORM, behavior = id_bhvOctagonalPlatformRotating, spawnYOffset = -300},
@@ -587,8 +588,8 @@ function spawn_selected(m)
     
     -- Register to-be-spawned object into the tracking table
     track_object(
-      uncompleteId = next_object_id,
-      ownerId = gNetworkPlayers[0].currLevelNum,
+      next_object_id,
+      gNetworkPlayers[0].globalIndex,
       gNetworkPlayers[0].currLevelNum,
       obj.behavior,
       obj.model,
@@ -605,32 +606,39 @@ function spawn_selected(m)
       -- See KNOWN_BUGS (3) at the top of this file
       -- spawn rotated when mario spawns them during a side flip (especially
       -- with Tilted objects)
+      -- o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
       o.oFaceAngleYaw = finalYaw
-      -- o.oFaceAnglePitch = obj.spawnPitch or 0
-      -- o.oFaceAngleRoll = obj.spawnRoll or 0
+      -- o.header.gfx.angle.y = finalYaw
+      -- o.oMoveAngleYaw = finalYaw
 
       if spawnObjectsUpright then
         -- print('spawnObjectsUpright')
+
         o.oFaceAnglePitch = obj.spawnPitch or 0
+        -- o.oMoveAnglePitch = obj.spawnPitch or 0
+        -- o.header.gfx.angle.x = obj.spawnPitch or 0
+
         o.oFaceAngleRoll = obj.spawnRoll or 0
+        -- o.oMoveAngleRoll = obj.spawnRoll or 0
+        -- o.header.gfx.angle.z = obj.spawnRoll or 0
       else
         -- print('not spawnObjectsUpright')
+
         o.oFaceAnglePitch = obj.spawnPitch or m.faceAngle.x
+        -- o.oMoveAnglePitch = obj.spawnPitch or m.faceAngle.x
+        -- o.header.gfx.angle.x = obj.spawnPitch or m.faceAngle.x
+
         o.oFaceAngleRoll = obj.spawnRoll or m.faceAngle.z
+        -- o.oMoveAngleRoll = obj.spawnRoll or m.faceAngle.z
+        -- o.header.gfx.angle.z = obj.spawnRoll or m.faceAngle.z
       end
 
-      -- TODO: Again, they differ from the ones above
-      o.header.gfx.angle.x = o.oFaceAnglePitch
-      o.header.gfx.angle.y = o.oFaceAngleYaw
-      o.header.gfx.angle.z = o.oFaceAngleRoll
+      -- For testing
+      -- o.header.gfx.angle.z = 16384
+      -- o.oFaceAngleRoll = 16384
 
-      o.oModOwnerId = gNetworkPlayers[0].globalIndex
-      o.oModUncompleteID = next_object_id
-
-      -- TODO: Stavano questo e quello sopra insieme decommentati. Capire se commentato funziona bene
-      -- o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
-
-      -- o.oModSpawnedFlag = 1
+      o.oModPlayerId = gNetworkPlayers[0].globalIndex
+      o.oModObjNum = next_object_id
 
       -- print('faceangle x: ' .. m.faceAngle.x)
       -- print('faceangle y: ' .. m.faceAngle.y)
@@ -645,32 +653,12 @@ function spawn_selected(m)
       -- o.oHomeY = o.oPosY
       -- o.oHomeZ = o.oPosZ
 
-      -- o.oFaceAnglePitch = 0
-      -- o.oFaceAngleRoll = 0
-      -- o.oModBhvID = obj.behavior
-      -- o.oModModelID = obj.model
-
-      -- For testing
-      -- o.header.gfx.angle.z = 16384
-      -- o.oFaceAngleRoll = 16384
-
-      -- --o.oTimer = 0
-      -- o.oMoveAngleYaw = m.faceAngle.y
-      -- o.oFaceAngleYaw = m.faceAngle.y
-      -- o.oMoveAnglePitch = m.faceAngle.x
-      -- o.oFaceAnglePitch = m.faceAngle.x
-      -- o.oMoveAngleRoll = m.faceAngle.z
-      -- o.oFaceAngleRoll = m.faceAngle.z
-
       network_init_object(o, true, {
         "oFaceAngleYaw",
         "oFaceAnglePitch",
         "oFaceAngleRoll",
-        "oModUncompleteID",
-        "oModOwnerId"
-        -- "oModSpawnedFlag",
-        -- "oModBhvID",
-        -- "oModModelID",
+        "oModObjNum",
+        "oModPlayerId"
       })
     end)
 
