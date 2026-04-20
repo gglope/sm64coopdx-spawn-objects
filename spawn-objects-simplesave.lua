@@ -21,6 +21,7 @@ local vowels = {
 }
 
 local TARGET_LEVEL = LEVEL_BOB
+-- local TARGET_LEVEL = LEVEL_RR
 local TARGET_AREA = 1
 local TARGET_WARP = 0
 -- local COOLDOWN_FRAMES = 10
@@ -109,7 +110,7 @@ local categories = {
             { behavior = id_bhvTTC2DRotator, model = E_MODEL_TTC_CLOCK_HAND, name = "Clock Hand", spawnOffset = 0, spawnYOffset = -40 },
             { behavior = id_bhvSeesawPlatform, model = E_MODEL_BITDW_SEESAW_PLATFORM, name = "Seesaw", spawnOffset = 200, spawnYOffset = -60 },
             -- Koopa flag always goes on the ground, so i make it spawn higher
-            { behavior = id_bhvLllDrawbridge, model = E_MODEL_LLL_DRAWBRIDGE_PART, name = "Drawbridge", spawnOffset = 200, spawnYOffset = -50, spawnYaw = -16384 },
+            { behavior = id_bhvLllDrawbridge, model = E_MODEL_LLL_DRAWBRIDGE_PART, name = "Drawbridge", spawnOffset = 200, spawnYOffset = -50, spawnYaw = -16384},
             -- { behavior = id_bhvLllDrawbridge, model = E_MODEL_LLL_DRAWBRIDGE_PART, name = "Drawbridge", spawnOffset = 200, spawnYOffset = -50 },
             {name = "Mesh elevator", model = E_MODEL_BBH_MESH_ELEVATOR, behavior = id_bhvMeshElevator, spawnOffset = 200, spawnYOffset = -50},
             {name = "Moving octagon", model = E_MODEL_LLL_MOVING_OCTAGONAL_MESH_PLATFORM, behavior = id_bhvLllMovingOctagonalMeshPlatform, spawnOffset = 200, spawnYOffset = -200},
@@ -509,26 +510,26 @@ function spawn_selected(m)
       -- with Tilted objects)
       -- o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
       o.oFaceAngleYaw = finalYaw
-      -- o.header.gfx.angle.y = finalYaw
+      o.header.gfx.angle.y = finalYaw
       -- o.oMoveAngleYaw = finalYaw
 
       if spawnObjectsUpright then
         -- print('spawnObjectsUpright')
         o.oFaceAnglePitch = obj.spawnPitch or 0
         -- o.oMoveAnglePitch = obj.spawnPitch or 0
-        -- o.header.gfx.angle.x = obj.spawnPitch or 0
+        o.header.gfx.angle.x = obj.spawnPitch or 0
         o.oFaceAngleRoll = obj.spawnRoll or 0
         -- o.oMoveAngleRoll = obj.spawnRoll or 0
-        -- o.header.gfx.angle.z = obj.spawnRoll or 0
+        o.header.gfx.angle.z = obj.spawnRoll or 0
       else
         -- print('not spawnObjectsUpright')
         o.oFaceAnglePitch = obj.spawnPitch or m.faceAngle.x
         -- o.oMoveAnglePitch = obj.spawnPitch or m.faceAngle.x
-        -- o.header.gfx.angle.x = obj.spawnPitch or m.faceAngle.x
+        o.header.gfx.angle.x = obj.spawnPitch or m.faceAngle.x
 
         o.oFaceAngleRoll = obj.spawnRoll or m.faceAngle.z
         -- o.oMoveAngleRoll = obj.spawnRoll or m.faceAngle.z
-        -- o.header.gfx.angle.z = obj.spawnRoll or m.faceAngle.z
+        o.header.gfx.angle.z = obj.spawnRoll or m.faceAngle.z
       end
 
       -- For testing
@@ -1008,6 +1009,25 @@ function on_hud_render()
 end
 
 hook_event(HOOK_MARIO_UPDATE, function(m)
+    m.health = 0x880   -- or 0x8FF; both are common "full health" values in SM64 Lua mods
+
+    -- Invincibility timer (extra safety)
+    -- m.invincTimer = 60
+
+    -- Optional: instantly cancel any death action and put Mario back into idle
+    local deathActions = {
+        ACT_DEATH_ON_BACK, ACT_DEATH_ON_STOMACH, ACT_DEATH_PLUNGE,
+        ACT_QUICKSAND_DEATH, ACT_SUFFOCATION, ACT_WATER_DEATH,
+        ACT_DROWNING, ACT_ELECTROCUTION, ACT_BURNING_JUMP,
+        ACT_BURNING_FALL
+    }
+    for _, act in ipairs(deathActions) do
+        if m.action == act then
+            set_mario_action(m, ACT_IDLE, 0)
+            break
+        end
+    end
+
     -- cooldown for every player
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1070,6 +1090,14 @@ hook_event(HOOK_ON_SYNC_VALID, function(type, levelNum, areaIdx, nodeId, arg)
         end
     end
 
+end)
+
+hook_event(HOOK_ON_DEATH, function(m)
+  if m.playerIndex == 0 then
+     m.health = 0x0880
+     set_mario_action(m, ACT_IDLE, 0)
+   end
+   return false
 end)
 
 print("Use D-Pad L/R for submenu navigation")
