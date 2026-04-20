@@ -46,5 +46,17 @@ Tracks spanwed object in tables. Enables save/load map and persistence (objects 
 
 # Useful info about developing
 
-- gGlobalSyncTable are not good to track the obejct
+General:
+- gGlobalSyncTable are not good to track the object
+
+What is the problem with tracking objects (i guess race conditions):
+- If an object despaws by itself (for example a shell gets used, or a wing cap hits the despawn timer) the object would still be in the tracking table?
+- I thought of using hooks everytime an object loads or unloads (this solution can possibily even avoid using `network_send`), so we are sure that even thought an object autodespawn by itself the deletion is tracked in the users tables
+- But another problem came up. When a player exits a level and all objects despawn, hook on object unload also deletes the spawned objects from the table, invalidating the entire persistence functionality
+- Can't even avoid this by using a flag (like `isClearingLevel = 1`), because what if another for example a player manually deletes an object while the flag is true? The object would simply not be deleted from the table
+
+
+In case someone can make it work:
+- One can introduce more complexity and make it work, but my goal is to keep the script as simple as possible. I could reconsider
+- One can choose to keep the table of objects only on the host device, but this means that everytime a player enters a level visited before, the host would be forced to send the entire list of objects on that level to the player who is entering it in order for the him to restore the objects
 

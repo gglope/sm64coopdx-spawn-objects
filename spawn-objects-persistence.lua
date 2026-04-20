@@ -32,6 +32,7 @@ local PACKET_DELETE_OBJECT = 1
 -- local PACKET_FULL_LIST     = 3
 local tracked_objects = {}
 local next_object_id = 1  -- id of tracked objects
+local isClearingLevel = false
 
 -- This two together form the id of an object
 define_custom_obj_fields({
@@ -39,6 +40,7 @@ define_custom_obj_fields({
     -- oModModelID = 's32',  -- model id, saved into the object itself
     oModPlayerId = 'u32',
     oModObjNum = 'u32',
+    oModLvlNum = 'u32',
 })
 
 -- Menu: allow guest object deletion
@@ -474,12 +476,14 @@ end
 local function on_packet_receive(packet)
     local level = packet.level
 
+    print('PACKET')
+
     if packet.type == PACKET_ADD_OBJECT then
-        if not tracked_spawned_objects[level] then tracked_spawned_objects[level] = {} end
-        -- table.insert(tracked_spawned_objects[level], packet.entry)
-        table.insert(tracked_spawned_objects[level], {
-            uncompleteId= packet.uncompleteId,
-            ownerId = packet.ownerId,
+        if not tracked_objects[level] then tracked_objects[level] = {} end
+        print('PACKET_ADD_OBJECT')
+        table.insert(tracked_objects[level], {
+            oModPlayerId = packet.oModPlayerId,
+            oModObjNum = packet.oModObjNum,
             beh = packet.beh,
             model = packet.model,
             x = packet.x,
@@ -491,11 +495,13 @@ local function on_packet_receive(packet)
             behParams = packet.behParams
         })
     elseif packet.type == PACKET_DELETE_OBJECT then
-        local list = tracked_spawned_objects[level]
+        local list = tracked_objects[level]
+        print('PACKET_DELETE_OBJECT')
         if list then
             for i = #list, 1, -1 do
-                if list[i].id == packet.id then
+                if list[i].oModPlayerId == packet.oModPlayerId and list[i].oModObjNum == packet.oModObjNum then
                     table.remove(list, i)
+                    break -- one object only
                 end
             end
         end
@@ -503,49 +509,48 @@ local function on_packet_receive(packet)
 end
 hook_event(HOOK_ON_PACKET_RECEIVE, on_packet_receive)
 
-function track_object(uncompleteId, ownerId, levelNum, beh, model, x, y, z, pitch, yaw, roll, behParams)
-  if not tracked_objects[levelNum] then
-    tracked_objects[levelNum] = {}
-  end
-
-  -- table.insert(tracked_objects[levelNum], entry)
-  table.insert(tracked_objects[levelNum], {
-    uncompleteId = uncompleteId,
-    ownerId = ownerId,
-    beh = beh,
-    model = model,
-    x = x,
-    y = y,
-    z = z,
-    pitch = pitch,
-    yaw = yaw,
-    roll = roll,
-    behParams = behParams
-  })
-
-  print('PACKET_ADD_OBJECT')
-
-  -- Tell other Marios to add the new objects in their local table
-  -- Forced to do like this cause can't send tables using network_send
-  network_send(true, {
-    type = PACKET_ADD_OBJECT,
-    uncompleteId = uncompleteId,
-    ownerId = ownerId,
-    level = levelNum,
-    id = next_object_id,
-    beh = beh,
-    model = model,
-    x = x,
-    y = y,
-    z = z,
-    pitch = pitch,
-    yaw = yaw,
-    roll = roll,
-    behParams = behParams
-  })
-
-  next_object_id = next_object_id + 1
-end
+-- function track_object(oModPlayerId, oModObjNum, levelNum, beh, model, x, y, z, pitch, yaw, roll, behParams)
+--   if not tracked_objects[levelNum] then
+--     tracked_objects[levelNum] = {}
+--   end
+-- 
+--   print(oModPlayerId)
+--   print(oModObjNum)
+-- 
+--   -- table.insert(tracked_objects[levelNum], entry)
+--   table.insert(tracked_objects[levelNum], {
+--     oModPlayerId = oModPlayerId,
+--     oModObjNum = oModObjNum,
+--     beh = beh,
+--     model = model,
+--     x = x,
+--     y = y,
+--     z = z,
+--     pitch = pitch,
+--     yaw = yaw,
+--     roll = roll,
+--     behParams = behParams,
+--   })
+-- 
+--   -- Tell other Marios to add the new objects in their local table
+--   -- Forced to do like this cause can't send tables using network_send
+--   network_send(true, {
+--     type = PACKET_ADD_OBJECT,
+--     oModPlayerId = oModPlayerId,
+--     oModObjNum = oModObjNum,
+--     level = levelNum,
+--     id = next_object_id,
+--     beh = beh,
+--     model = model,
+--     x = x,
+--     y = y,
+--     z = z,
+--     pitch = pitch,
+--     yaw = yaw,
+--     roll = roll,
+--     behParams = behParams,
+--   })
+-- end
 
 
 function spawn_selected(m)
@@ -572,14 +577,15 @@ function spawn_selected(m)
     local spawnZ = m.pos.z + effectiveOffset * coss(m.faceAngle.y)
 
     local finalYaw = obj.spawnYaw or m.faceAngle.y
+    local finalPitch, finalRoll
     if spawnObjectsUpright then
       -- print('spawnObjectsUpright')
-      local finalPitch = obj.spawnPitch or 0
-      local finalRoll = obj.spawnRoll or 0
+      finalPitch = obj.spawnPitch or 0
+      finalRoll = obj.spawnRoll or 0
     else
       -- print('not spawnObjectsUpright')
-      local finalPitch = obj.spawnPitch or m.faceAngle.x
-      local finalRoll = obj.spawnRoll or m.faceAngle.z
+      finalPitch = obj.spawnPitch or m.faceAngle.x
+      finalRoll = obj.spawnRoll or m.faceAngle.z
     end
 
     -- print(string.format('spawnX: %.15f', spawnX))
@@ -588,8 +594,8 @@ function spawn_selected(m)
     
     -- Register to-be-spawned object into the tracking table
     track_object(
-      next_object_id,
-      gNetworkPlayers[0].globalIndex,
+      gNetworkPlayers[0].globalIndex + 1, -- oModPlayerId
+      next_object_id, -- oModObjNum
       gNetworkPlayers[0].currLevelNum,
       obj.behavior,
       obj.model,
@@ -613,17 +619,14 @@ function spawn_selected(m)
 
       if spawnObjectsUpright then
         -- print('spawnObjectsUpright')
-
         o.oFaceAnglePitch = obj.spawnPitch or 0
         -- o.oMoveAnglePitch = obj.spawnPitch or 0
         -- o.header.gfx.angle.x = obj.spawnPitch or 0
-
         o.oFaceAngleRoll = obj.spawnRoll or 0
         -- o.oMoveAngleRoll = obj.spawnRoll or 0
         -- o.header.gfx.angle.z = obj.spawnRoll or 0
       else
         -- print('not spawnObjectsUpright')
-
         o.oFaceAnglePitch = obj.spawnPitch or m.faceAngle.x
         -- o.oMoveAnglePitch = obj.spawnPitch or m.faceAngle.x
         -- o.header.gfx.angle.x = obj.spawnPitch or m.faceAngle.x
@@ -637,8 +640,9 @@ function spawn_selected(m)
       -- o.header.gfx.angle.z = 16384
       -- o.oFaceAngleRoll = 16384
 
-      o.oModPlayerId = gNetworkPlayers[0].globalIndex
+      o.oModPlayerId = gNetworkPlayers[0].globalIndex + 1
       o.oModObjNum = next_object_id
+      o.oModLvlNum = gNetworkPlayers[0].currLevelNum
 
       -- print('faceangle x: ' .. m.faceAngle.x)
       -- print('faceangle y: ' .. m.faceAngle.y)
@@ -657,8 +661,9 @@ function spawn_selected(m)
         "oFaceAngleYaw",
         "oFaceAnglePitch",
         "oFaceAngleRoll",
+        "oModPlayerId",
         "oModObjNum",
-        "oModPlayerId"
+        "oModLvlNum",
       })
     end)
 
@@ -676,62 +681,64 @@ function spawn_selected(m)
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 end
 
--- -- used by delete object
--- local function find_nearest_object(m)
---     local nearest = nil
---     local minDistSq = 1200 * 1200   -- reasonable range limit
--- 
---     -- List of object lists
---     local lists = {
---         OBJ_LIST_DESTRUCTIVE,
---         OBJ_LIST_GENACTOR,
---         OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
---         OBJ_LIST_LEVEL,
---         OBJ_LIST_DEFAULT,
---         OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
---         OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
---         OBJ_LIST_SPAWNER,
---         -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
---     }
--- 
---     for _, list in ipairs(lists) do
---         local obj = obj_get_first(list)
---         while obj ~= nil do
---             -- Skip any player's Mario object
---             local isMarioObj = false
---             for i = 0, MAX_PLAYERS - 1 do
---                 if gMarioStates[i] and gMarioStates[i].marioObj == obj then
---                     isMarioObj = true
---                     break
---                 end
---             end
--- 
---             -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
---             local isDoor = false
---             if not isMarioObj then
---                 -- local bhv = obj.behavior
---                 if obj.oInteractType == INTERACT_DOOR or
---                    obj.oInteractType == INTERACT_WARP_DOOR then
---                      isDoor = true
---                 end
---             end
--- 
---             if not isMarioObj and not isDoor then
---                 local dx = obj.oPosX - m.pos.x
---                 local dy = obj.oPosY - m.pos.y
---                 local dz = obj.oPosZ - m.pos.z
---                 local distSq = dx*dx + dy*dy + dz*dz
---                 if distSq < minDistSq then
---                     minDistSq = distSq
---                     nearest = obj
---                 end
---             end
---             obj = obj_get_next(obj)
---         end
---     end
--- 
---     return nearest
--- end
+
+local function find_nearest_object(m)
+    local nearest = nil
+    local minDistSq = 1200 * 1200   -- reasonable range limit
+
+    -- List of object lists
+    local lists = {
+      OBJ_LIST_DESTRUCTIVE,
+      OBJ_LIST_GENACTOR,
+      OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
+      OBJ_LIST_LEVEL,
+      OBJ_LIST_DEFAULT,
+      OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
+      OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
+      OBJ_LIST_SPAWNER,
+      -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
+    }
+
+    for _, list in ipairs(lists) do
+      local obj = obj_get_first(list)
+      while obj ~= nil do
+        -- if obj.oModPlayerId and obj.oModObjNum then
+        -- Skip any player's Mario object
+        local isMarioObj = false
+        for i = 0, MAX_PLAYERS - 1 do
+          if gMarioStates[i] and gMarioStates[i].marioObj == obj then
+            isMarioObj = true
+            break
+          end
+        end
+
+        -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
+        local isDoor = false
+        if not isMarioObj then
+            -- local bhv = obj.behavior
+            if obj.oInteractType == INTERACT_DOOR or
+               obj.oInteractType == INTERACT_WARP_DOOR then
+                 isDoor = true
+            end
+        end
+
+        if not isMarioObj and not isDoor then
+            local dx = obj.oPosX - m.pos.x
+            local dy = obj.oPosY - m.pos.y
+            local dz = obj.oPosZ - m.pos.z
+            local distSq = dx*dx + dy*dy + dz*dz
+            if distSq < minDistSq then
+                minDistSq = distSq
+                nearest = obj
+            end
+        end
+        obj = obj_get_next(obj)
+        -- end
+      end
+    end
+
+    return nearest
+end
 
 local function handle_object_deletion(m)
     if (m.controller.buttonPressed & Y_BUTTON) == 0 then return end
@@ -740,10 +747,10 @@ local function handle_object_deletion(m)
     -- m.controller.buttonPressed = m.controller.buttonPressed & ~Y_BUTTON
 
     local data = get_player_data(m.playerIndex)
+    -- TODO: Check if a popup is created in this case
     if data.deletionCooldown > 0 then return end
 
     local canDelete = network_is_server() or gGlobalSyncTable.allowGuestDeletion
-
     if not canDelete then
         if m.playerIndex == 0 then
             djui_popup_create("\\#ff4444\\Guest object deletion is disabled by host!", 2)
@@ -751,78 +758,69 @@ local function handle_object_deletion(m)
         return
     end
 
-    -- local levelNum = gGlobal.level_num
     local levelNum = gNetworkPlayers[0].currLevelNum
-    local list = tracked_objects[levelNum]
-    if not list or #list == 0 then
-      if m.playerIndex == 0 then
-        djui_popup_create("No nearby player-spawned object found", 0.5)
-      end
+    local spawnList = tracked_objects[levelNum]
 
-      -- Reset timer anyway
-      data.deletionCooldown = COOLDOWN_FRAMES_DEL
-      return
-    end
+    -- if not spawnList or #spawnList == 0 then
+    --   if m.playerIndex == 0 then
+    --     djui_popup_create("No nearby player-spawned object found", 0.5)
+    --   end
 
-    local MAX_DELETION_DIST_SQ = 1200 * 1200
+    --   -- Reset timer anyway
+    --   data.deletionCooldown = COOLDOWN_FRAMES_DEL
+    --   return
+    -- end
 
-    -- Current nearest object index and dist, cause we need to visit all
-    -- tracked objects in the level to get the real nearest
-    local nearest_idx = 1
-    local nearest_dist_sq = MAX_DELETION_DIST_SQ
-
-    for i, obj in ipairs(list) do
-      local dx = obj.x - m.pos.x
-      local dy = obj.y - m.pos.y
-      local dz = obj.z - m.pos.z
-      local dist_sq = dx*dx + dy*dy + dz*dz
-
-      if dist_sq < nearest_dist_sq then
-        nearest_dist_sq = dist_sq
-        nearest_idx = i
-      end
-    end
-
-    if nearest_dist_sq >= MAX_DELETION_DIST_SQ then
-      if m.playerIndex == 0 then
-        djui_popup_create("No nearby player-spawned object found", 0.5)
-      end
-
-      -- Timer also reset when no near objects found
-      data.deletionCooldown = COOLDOWN_FRAMES_DEL
-      return
-    end
-
-    local target = list[nearest_idx]
-    local targetObj = sync_object_get_object(list[nearest_idx].syncID)
-
-    if targetObj ~= nil and sync_object_is_initialized(list[nearest_idx].syncID) then
-      print('PACKET_DELETE_OBJECT')
-
-      -- Inform other Marios to also delete the object from their tables
-      network_send(true, {
-        type = PACKET_DELETE_OBJECT,
-        level = levelNum,
-        -- Don't send nearest_idx. Only reliable field is the id in the object
-        -- itself, that is always the same because is set on the spawning user
-        -- device only and then sent to the other players
-        ownerId = target.ownerId,
-        uncompleteId = target.uncompleteId,
-      })
-
-      -- TODO: Continuare qui. Magari farsi una funzione per cercare l'obj
+    local nearest = find_nearest_object(m)
+    if nearest then
       -- MAIN LINE i guess
-      obj_mark_for_deletion(targetObj)
-
-      table.remove(list, nearest_idx)
+      obj_mark_for_deletion(nearest)
 
       if m.playerIndex == 0 then
-          djui_popup_create("\\#44ff44\\Object deleted!", 1)
+          djui_popup_create("\\#44ff44\\Object deleted!", 0.5)
+      end
+
+      data.deletionCooldown = COOLDOWN_FRAMES_DEL
+    else
+      if m.playerIndex == 0 then
+        djui_popup_create("No nearby player-spawned object found", 0.5)
       end
     end
-
-    data.deletionCooldown = COOLDOWN_FRAMES_DEL
 end
+
+
+-- hook_event(HOOK_ON_CLEAR_AREAS, function(obj)
+--   isClearingLevel = true
+-- end)
+-- 
+-- hook_event(HOOK_ON_LEVEL_INIT, function()
+--     isClearingLevel = false
+-- end)
+-- 
+-- hook_event(HOOK_ON_SYNC_OBJECT_UNLOAD, function(obj)
+--   if not isClearingLevel and obj.oModPlayerId or 0 > 0 and obj.oModObjNum or 0 > 0 then
+--     -- TODO: What if the object is not found?
+--     -- Find the tracked object that has the same two ids as nearest
+--     -- backwards
+--     local levelNum = obj.oModLvlNum
+--     local spawnList = tracked_objects[levelNum] or {}
+--     for i = #spawnList, 1, -1 do
+--       -- Check if same object by comparing the IDs
+--       if spawnList[i].oModPlayerId == obj.oModPlayerId and spawnList[i].oModObjNum == obj.oModObjNum then
+--         nearestIndex = i
+--         print('HOOK_ON_SYNC_OBJECT_UNLOAD:')
+--         break  -- only one object
+--       end
+--     end
+-- 
+--     -- print('HOOK_ON_SYNC_OBJECT_UNLOAD:' .. tracked_objects[levelNum].nearestIndex or 'nothing here')
+-- 
+--     -- table.remove(tracked_objects[levelNum], nearest_idx)
+--     table.remove(spawnList, nearest_idx)
+-- 
+--   end
+-- end)
+
 
 -- local function savemap(name)
 function savemap(name)
@@ -1164,7 +1162,6 @@ function on_hud_render()
     render_cooldown_timer()
 end
 
--- ====================== HOOKS ======================
 hook_event(HOOK_MARIO_UPDATE, function(m)
     -- cooldown for every player
     local data = get_player_data(m.playerIndex)
@@ -1186,3 +1183,4 @@ end)
 hook_event(HOOK_ON_HUD_RENDER, on_hud_render)
 
 print("Use D-Pad L/R for submenu navigation")
+

@@ -1,5 +1,5 @@
--- name: Spawn Objects simplesave (beta)
--- description: Spawn, delete, save, load (host only) objects (save function, no persistence)
+-- name: Spawn Objects persistence new (beta)
+-- description: Spawn, delete, save, load (host only) objects (save function, persistence)
 
 -- KNOWN_BUGS:
 -- - (1) When an object id deleted and the player saves right after, that
@@ -20,13 +20,11 @@ local vowels = {
     ["A"] = true, ["E"] = true, ["I"] = true, ["O"] = true, ["U"] = true
 }
 
-local TARGET_LEVEL = LEVEL_BOB
-local TARGET_AREA = 1
-local TARGET_WARP = 0
 -- local COOLDOWN_FRAMES = 10
 local COOLDOWN_FRAMES = 80
 local COOLDOWN_FRAMES_DEL = 15
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+local tracked_objects = {}
 
 define_custom_obj_fields({
     oModSpawnedFlag = 'u32',  -- mod spawned objects are flagged
@@ -579,15 +577,15 @@ local function find_nearest_object(m)
 
     -- List of object lists
     local lists = {
-        OBJ_LIST_DESTRUCTIVE,
-        OBJ_LIST_GENACTOR,
-        OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
-        OBJ_LIST_LEVEL,
-        OBJ_LIST_DEFAULT,
-        OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
-        OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
-        OBJ_LIST_SPAWNER,
-        -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
+      OBJ_LIST_DESTRUCTIVE,
+      OBJ_LIST_GENACTOR,
+      OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
+      OBJ_LIST_LEVEL,
+      OBJ_LIST_DEFAULT,
+      OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
+      OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
+      OBJ_LIST_SPAWNER,
+      -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
     }
 
     for _, list in ipairs(lists) do
@@ -661,15 +659,15 @@ local function handle_object_deletion(m)
 
         -- Popup only for local player
         if m.playerIndex == 0 then
-          djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
+            djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
         end
-
-        data.deletionCooldown = COOLDOWN_FRAMES_DEL
     else
-      if m.playerIndex == 0 then
-        djui_popup_create("No nearby object found", 0.5)
-      end
+        if m.playerIndex == 0 then
+            djui_popup_create("No nearby object found", 0.5)
+        end
     end
+
+    data.deletionCooldown = COOLDOWN_FRAMES_DEL
 end
 
 -- local function savemap(name)
@@ -864,17 +862,24 @@ end
 hook_chat_command("loadmap", "[name] Load map <name> or default if no name given (host only)", loadmap)
 
 -- respawn
-hook_chat_command("respawn", "Respawn if you get stuck", function(msg)
-    -- local m = gMarioStates[0]
+hook_chat_command("die", "Use this to die", function(msg)
+    local m = gMarioStates[0]
     -- local np = gNetworkPlayers[0]
 
-    -- Respawn
-    warp_to_level(TARGET_LEVEL, TARGET_AREA, TARGET_WARP)
-    return true
+    -- -- Respawn + delete all created objects
+    -- if msg == "delobj" then
+    --   warp_to_level(np.currLevelNum, np.currAreaIndex, 0x0A)
 
-    -- m.health = 0
-    -- set_mario_action(m, ACT_DEATH, 0)
-    -- return true
+    --   djui_popup_create("Respawned at start, created objects deleted", 3)
+    --   return true
+    -- end
+
+    -- Respawn  without deleting objects
+    m.health = 0
+    set_mario_action(m, ACT_DEATH, 0)
+
+    djui_popup_create("Respawned at start", 3)
+    return true
 end)
 
 -- menu
@@ -1027,49 +1032,7 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
 end)
 hook_event(HOOK_ON_HUD_RENDER, on_hud_render)
 
-hook_event(HOOK_ON_PLAYER_CONNECTED, function(m)
-  if m.playerIndex == 0 then
-    warp_to_level(TARGET_LEVEL, TARGET_AREA, TARGET_WARP)
-  end
-end)
-
-hook_event(HOOK_ON_LEVEL_INIT, function(type, levelNum, areaIdx, nodeId, arg)
-  if levelNum ~= TARGET_LEVEL then
-    warp_to_level(TARGET_LEVEL, TARGET_AREA, TARGET_WARP)
-  end
-end)
-
-hook_event(HOOK_ON_PAUSE_EXIT, function(usedExitToCastle)
-  return false
-end)
-
--- hook_event(HOOK_ON_LEVEL_INIT, function(type, levelNum, areaIdx, nodeId, arg)
-hook_event(HOOK_ON_SYNC_VALID, function(type, levelNum, areaIdx, nodeId, arg)
-    -- TODO: removes useless lists
-    local lists = {
-        OBJ_LIST_DESTRUCTIVE,
-        OBJ_LIST_GENACTOR,
-        OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
-        OBJ_LIST_LEVEL,
-        OBJ_LIST_DEFAULT,
-        OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
-        OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
-        OBJ_LIST_SPAWNER,
-        -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
-    }
-
-    for _, list in ipairs(lists) do
-      local obj = obj_get_first(list)
-      while obj ~= nil do
-          if obj.oInteractType == INTERACT_DOOR or
-             obj.oInteractType == INTERACT_WARP_DOOR then
-               print('inside')
-               obj_mark_for_deletion(obj)
-          end
-          obj = obj_get_next(obj)
-        end
-    end
-
+hook_event(HOOK_ON_CLEAR_AREAS, function()
 end)
 
 print("Use D-Pad L/R for submenu navigation")
