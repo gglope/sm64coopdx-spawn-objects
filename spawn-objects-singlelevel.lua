@@ -1114,5 +1114,5 @@ local function fix_wooden_post(obj)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
 
-print("Use D-Pad L/R for submenu navigation")
+print("Use DPAD Left or right for submenu navigation")
 
