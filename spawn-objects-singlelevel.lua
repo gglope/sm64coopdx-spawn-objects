@@ -7,8 +7,7 @@
 -- loadmap you can bump into an invisible object
 -- TODO: - (2) If player uses /savemap while wooden logs are rotated, that pitch is
 -- saved in the file, and when map is loaded, the log will have that pitch
--- despite not rotating. Maybe a variable in `local categories` that tell to
--- reset pitch on save?
+-- despite not rotating
 -- - (3) When spawning a tilted object while side jumping, the object will be
 -- spawned facing the wrong direction
 
@@ -114,6 +113,8 @@ local categories = {
             -- Koopa flag always goes on the ground, so i make it spawn higher
             -- {name = "Koopa race endpoint", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaRaceEndpoint},
             {name = "Tilting floor platform", behavior = id_bhvBbhTiltingTrapPlatform, model = E_MODEL_BBH_TILTING_FLOOR_PLATFORM, spawnYOffset = -200},
+            {name = "Pillar base", model = E_MODEL_JRB_FALLING_PILLAR_BASE, behavior = id_bhvPillarBase},
+            {name = "Pyramid top", model = E_MODEL_SSL_PYRAMID_TOP, behavior = id_bhvPyramidTop},
             {name = "JRB floating platform", model = E_MODEL_JRB_FLOATING_PLATFORM, behavior = id_bhvJrbFloatingPlatform},
             {name = "Controllable platform", behavior = id_bhvControllablePlatform, model = E_MODEL_HMC_METAL_PLATFORM},
             {name = "Checkerboard elevator (swings)", behavior = id_bhvCheckerboardPlatformSub, model = E_MODEL_CHECKERBOARD_PLATFORM, spawnOffset = 300, spawnYOffset = -200},
@@ -130,6 +131,7 @@ local categories = {
             {name = "Sinking square platforms", model = E_MODEL_LLL_SINKING_SQUARE_PLATFORMS, behavior = id_bhvLllSinkingSquarePlatforms},
             {name = "Bits octagonal platform", model = E_MODEL_BITS_OCTAGONAL_PLATFORM, behavior = id_bhvOctagonalPlatformRotating, spawnYOffset = -300},
            {name = "RR octagonal platform", model = E_MODEL_RR_OCTAGONAL_PLATFORM, behavior = id_bhvOctagonalPlatformRotating, spawnYOffset = -300},
+          {name = "RR rotating bridge platform", model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM, behavior = id_bhvRrRotatingBridgePlatform},
             { behavior = id_bhvSwingPlatform, model = E_MODEL_RR_SWINGING_PLATFORM, name = "Swing", spawnOffset = 700, spawnYOffset = 400, spawnLateralOffset = 200, spawnYaw = 16384},
             {name = "Merry go round", model = E_MODEL_BBH_MERRY_GO_ROUND, behavior = id_bhvMerryGoRound, spawnOffset = 300},
             { behavior = id_bhvSquishablePlatform, model = E_MODEL_BITFS_STRETCHING_PLATFORMS, name = "Stretching Platforms", spawnOffset = 0, spawnYOffset = -120, spawnYaw = 16384},
@@ -185,6 +187,7 @@ local categories = {
             { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower", spawnOffset = 200 },
             { behavior = id_bhvFireSpitter, model = E_MODEL_BOWLING_BALL, name = "Fire Spitter", spawnOffset = 200 },
             { behavior = id_bhvBowlingBall, model = E_MODEL_BOWLING_BALL, name = "Bowling Ball", spawnOffset = 300 },
+            {name = "Pit bowling ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvPitBowlingBall},
             {name = "Grindel", model = E_MODEL_SSL_GRINDEL, behavior = id_bhvGrindel},
             { behavior = id_bhvHorizontalGrindel, model = E_MODEL_SSL_GRINDEL, name = "Moving grindel", spawnOffset = 400 },
             { behavior = id_bhvBigBoulder, model = E_MODEL_HMC_ROLLING_ROCK, name = "Boulder", spawnOffset = 450 },
@@ -209,8 +212,9 @@ local categories = {
             { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200 },
             { behavior = id_bhvBobomb, model = E_MODEL_BOBOMB_BUDDY, name = "Bobomb Not-Buddy", spawnOffset = 200 },
             {name = "Bobomb", behavior = id_bhvBobomb, model = E_MODEL_BLACK_BOBOMB, spawnOffset = 100 },
+            {name = "Piranha plant", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant},
+            { behavior = id_bhvSmallWhomp, model = E_MODEL_WHOMP, name = "Whomp", spawnOffset = 200 },
             { behavior = id_bhvThwomp, model = E_MODEL_THWOMP, name = "Thwomp", spawnOffset = 300 },
-            { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
             { behavior = id_bhvChuckya, model = E_MODEL_CHUCKYA, name = "Chuckya", spawnOffset = 200 },
             { behavior = id_bhvScuttlebug, model = E_MODEL_SCUTTLEBUG, name = "Scuttlebug", spawnOffset = 200 },
             { behavior = id_bhvFlyGuy, model = E_MODEL_FLYGUY, name = "Fly Guy", spawnOffset = 300 },
@@ -233,15 +237,15 @@ local categories = {
         }
     },
     {
-        name = "Bosses",
+        name = "Big enemies",
         items = {
+            { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
             { behavior = id_bhvBigBully, model = E_MODEL_BULLY_BOSS, name = "Big Bully", spawnOffset = 400, spawnYaw = 32768, spawnPitch = 0, spawnRoll = 0},
             {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
             { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
             { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser" },
             {name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2},
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
-            { behavior = id_bhvSmallWhomp, model = E_MODEL_WHOMP, name = "Whomp", spawnOffset = 200 },
             { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Balcony big boo", spawnOffset = 300 },
         }
     },
@@ -300,17 +304,17 @@ local categories = {
             {name = "Hexagon", model = E_MODEL_LLL_ROTATING_HEXAGONAL_RING, behavior = id_bhvLllHexagonalMesh},
             {name = "Koopa shell", model = E_MODEL_KOOPA_SHELL, behavior = id_bhvKoopaShellUnderwater},
             {name = "Pendulum", behavior = id_bhvDecorativePendulum, model = E_MODEL_CASTLE_CLOCK_PENDULUM},
-            {name = "Clock hour hand", behavior = id_bhvClockHourHand, model = E_MODEL_CASTLE_CLOCK_HOUR_HAND},
-            {name = "Clock minute hand", behavior = id_bhvClockMinuteHand, model = E_MODEL_CASTLE_CLOCK_MINUTE_HAND},
+            {name = "Clock hour hand", behavior = id_bhvClockHourHand, model = E_MODEL_CASTLE_CLOCK_HOUR_HAND, spawnYaw = 32768},
+            {name = "Clock minute hand", behavior = id_bhvClockMinuteHand, model = E_MODEL_CASTLE_CLOCK_MINUTE_HAND, spawnYaw = 32768},
             {name = "Cannon barrel", behavior = id_bhvCannonBarrel, model = E_MODEL_CANNON_BARREL},
             {name = "Chest bottom", behavior = id_bhvBetaChestBottom, model = E_MODEL_TREASURE_CHEST_BASE},
             {name = "Chest lid", behavior = id_bhvBetaChestLid, model = E_MODEL_TREASURE_CHEST_LID},
             {name = "Boo cage", behavior = id_bhvStaticObject, model = E_MODEL_HAUNTED_CAGE},
             {name = "Boo key", behavior = id_bhvAlphaBooKey, model = E_MODEL_BETA_BOO_KEY},
-            { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star" },
+            { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star", spawnYOffset = 100},
             {name = "RR cruiser wing", model = E_MODEL_RR_CRUISER_WING, behavior = id_bhvRrCruiserWing},
             {name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel},
-            { behavior = id_bhvToadMessage, model = E_MODEL_TOAD, name = "Toad" },
+            { behavior = id_bhvToadMessage, model = E_MODEL_TOAD, name = "Toad"},
         }
     },
     {
@@ -318,9 +322,6 @@ local categories = {
         items = {
           -- {name = "OPENABLE_GRILL", model = E_MODEL_ERROR_MODEL, behavior = id_bhvOpenableGrill},
           -- {name = "ORANGE_NUMBER", model = E_MODEL_NUMBER, behavior = id_bhvOrangeNumber},
-          {name = "PILLAR_BASE", model = E_MODEL_JRB_FALLING_PILLAR_BASE, behavior = id_bhvPillarBase},
-          {name = "PIRANHA_PLANT", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant},
-          {name = "PIT_BOWLING_BALL", model = E_MODEL_BOWLING_BALL, behavior = id_bhvPitBowlingBall},
           -- {name = "BITFS_PLATFORM_ON_TRACK", model = E_MODEL_BITFS_PLATFORM_ON_TRACK, behavior = id_bhvPlatformOnTrack},
           -- {name = "CCM_ROPEWAY_LIFT", model = E_MODEL_CCM_ROPEWAY_LIFT, behavior = id_bhvPlatformOnTrack},
           {name = "CHECKERBOARD_PLATFORM_ON_TRACK", model = E_MODEL_CHECKERBOARD_PLATFORM, behavior = id_bhvPlatformOnTrack},
@@ -330,12 +331,9 @@ local categories = {
           -- {name = "POKEY_BODY_PART", model = E_MODEL_POKEY_BODY_PART, behavior = id_bhvPokeyBodyPart},
           {name = "PURPLE_SWITCH_HIDDEN_BOXES", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvPurpleSwitchHiddenBoxes},
           -- {name = "PYRAMID_ELEVATOR_TRAJECTORY_MARKER_BALL", model = E_MODEL_TRAJECTORY_MARKER_BALL, behavior = id_bhvPyramidElevatorTrajectoryMarkerBall},
-          {name = "PYRAMID_TOP", model = E_MODEL_SSL_PYRAMID_TOP, behavior = id_bhvPyramidTop},
           -- {name = "RACING_PENGUIN", model = E_MODEL_PENGUIN, behavior = id_bhvRacingPenguin},
-          {name = "RED_COIN", model = E_MODEL_RED_COIN, behavior = id_bhvRedCoin},
           -- {name = "JRB_ROCK", model = E_MODEL_JRB_ROCK, behavior = id_bhvRockSolid},
-          {name = "WDW_ROTATING_PLATFORM", model = E_MODEL_WDW_ROTATING_PLATFORM, behavior = id_bhvRotatingPlatform},
-          {name = "RR_ROTATING_BRIDGE_PLATFORM", model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM, behavior = id_bhvRrRotatingBridgePlatform},
+          {name = "WDW rotating platform (bugged)", model = E_MODEL_WDW_ROTATING_PLATFORM, behavior = id_bhvRotatingPlatform},
         }
     },
 }
