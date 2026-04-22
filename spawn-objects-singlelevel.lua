@@ -60,7 +60,7 @@ end
 
 
 -- Menu: spawn objects always upright?
-local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or false
+local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or true
 local function onUprightToggle(index, value)
     spawnObjectsUpright = value
     mod_storage_save_bool("spawn_objects_upright", value)
@@ -144,13 +144,15 @@ local categories = {
     {
       name = "Elevators",
       items = {
-        { behavior = id_bhvHoot, model = E_MODEL_HOOT,name = "Owl", spawnOffset = 0 },
+        -- Owls disabled because when they go way up, Mario can get stuck in interaction
+        -- { behavior = id_bhvHoot, model = E_MODEL_HOOT,name = "Owl", spawnOffset = 0, action = 1},
         {name = "Ferris wheel", model = E_MODEL_BITS_FERRIS_WHEEL_AXLE, behavior = id_bhvFerrisWheelAxle},
         {name = "HMC elevator platform", model = E_MODEL_HMC_ELEVATOR_PLATFORM, behavior = id_bhvHmcElevatorPlatform, spawnOffset = 0, spawnYOffset = -80},
         {name = "RR elevator platform", model = E_MODEL_RR_ELEVATOR_PLATFORM, behavior = id_bhvRrElevatorPlatform},
         {name = "Mesh elevator", model = E_MODEL_BBH_MESH_ELEVATOR, behavior = id_bhvMeshElevator, spawnOffset = 200, spawnYOffset = -50},
         { behavior = id_bhvCheckerboardElevatorGroup, model = E_MODEL_CHECKERBOARD_PLATFORM, name = "Checkerboard Elevator Group", spawnYOffset = -80 },
-        {name = "Pyramid elevator", model = E_MODEL_SSL_PYRAMID_ELEVATOR, behavior = id_bhvPyramidElevator},
+        -- Disabled because sometimes Mario gets teleported way out of bounds
+        -- {name = "Pyramid elevator", model = E_MODEL_SSL_PYRAMID_ELEVATOR, behavior = id_bhvPyramidElevator},
       }
     },
     {
@@ -252,7 +254,7 @@ local categories = {
     {
         name = "Misc",
         items = {
-            { behavior = id_bhvCannon, model = E_MODEL_CANNON_BASE, name = "Cannon", spawnYOffset = 0 },
+            { behavior = id_bhvCannon, model = E_MODEL_CANNON_BASE, name = "Cannon", spawnYOffset = 0, spawnYaw = -16384},
             { behavior = id_bhvJumpingBox, model = E_MODEL_BREAKABLE_BOX_SMALL, name = "Jumping Box" },
             { behavior = id_bhvWhirlpool, model = E_MODEL_DL_WHIRLPOOL, name = "Whirlpool" },
             { behavior = id_bhvSLWalkingPenguin, model = E_MODEL_PENGUIN, name = "Walking Penguin" },
@@ -441,6 +443,7 @@ function spawn_selected(m)
         -- - lateralOffset * sins(m.faceAngle.y)
 
     -- local finalYaw = obj.spawnYaw or m.faceAngle.y
+    -- local finalYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
     local finalYaw = m.faceAngle.y + (obj.spawnYaw or 0)
     local finalPitch
     local finalRoll
@@ -466,26 +469,26 @@ function spawn_selected(m)
       -- o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
       -- o.oFlags = o.oFlags & ~OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW
       -- o.oTimer = 0
-      -- o.oFaceAngleYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
       o.oFaceAngleYaw = finalYaw
       o.header.gfx.angle.y = finalYaw
       o.oMoveAngleYaw = finalYaw
 
+      -- Fixes cannon yaw
+      print(obj.behavior)
+      if obj.behavior == id_bhvCannon then
+        print('imacannon')
+        o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
+      end
+
       o.oFaceAnglePitch = finalPitch
-      -- print(o.oFaceAnglePitch)
       o.header.gfx.angle.x = finalPitch
       -- o.oMoveAnglePitch = finalPitch
-
       o.oFaceAngleRoll = finalRoll
       o.header.gfx.angle.z = finalRoll
       -- o.oMoveAngleRoll = finalRoll
 
       o.oModSpawnedFlag = 1
       o.oModModelID = obj.model
-
-      -- For testing
-      -- o.header.gfx.angle.z = 16384
-      -- o.oFaceAngleRoll = 16384
 
       network_init_object(o, true, {
         "oFaceAngleYaw",
@@ -620,13 +623,13 @@ local function handle_object_deletion(m)
         if m.playerIndex == 0 then
           djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
         end
-
-        data.deletionCooldown = COOLDOWN_FRAMES_DEL
     else
       if m.playerIndex == 0 then
         djui_popup_create("No nearby object found", 0.5)
       end
     end
+
+    data.deletionCooldown = COOLDOWN_FRAMES_DEL
 end
 
 -- local function savemap(name)
@@ -1080,6 +1083,7 @@ hook_event(HOOK_ON_SYNC_VALID, function(type, levelNum, areaIdx, nodeId, arg)
       local obj = obj_get_first(list)
       while obj ~= nil do
           if obj.oInteractType == INTERACT_DOOR or
+             obj.oInteractType == INTERACT_WARP or
              obj.oInteractType == INTERACT_WARP_DOOR then
                obj_mark_for_deletion(obj)
           end
