@@ -131,7 +131,7 @@ local categories = {
             {name = "Sinking square platforms", model = E_MODEL_LLL_SINKING_SQUARE_PLATFORMS, behavior = id_bhvLllSinkingSquarePlatforms},
             {name = "Bits octagonal platform", model = E_MODEL_BITS_OCTAGONAL_PLATFORM, behavior = id_bhvOctagonalPlatformRotating, spawnYOffset = -300},
            {name = "RR octagonal platform", model = E_MODEL_RR_OCTAGONAL_PLATFORM, behavior = id_bhvOctagonalPlatformRotating, spawnYOffset = -300},
-          {name = "RR rotating bridge platform", model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM, behavior = id_bhvRrRotatingBridgePlatform},
+          {name = "RR rotating bridge platform", model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM, behavior = id_bhvRrRotatingBridgePlatform, spawnYOffset = -700},
             { behavior = id_bhvSwingPlatform, model = E_MODEL_RR_SWINGING_PLATFORM, name = "Swing", spawnOffset = 700, spawnYOffset = 400, spawnLateralOffset = 200, spawnYaw = 16384},
             {name = "Merry go round", model = E_MODEL_BBH_MERRY_GO_ROUND, behavior = id_bhvMerryGoRound, spawnOffset = 300},
             { behavior = id_bhvSquishablePlatform, model = E_MODEL_BITFS_STRETCHING_PLATFORMS, name = "Stretching Platforms", spawnOffset = 0, spawnYOffset = -120, spawnYaw = 16384},
