@@ -21,7 +21,7 @@ local vowels = {
 
 -- local TARGET_LEVEL = LEVEL_BOB
 -- local TARGET_LEVEL = LEVEL_RR
-local TARGET_LEVEL = LEVEL_CASTLE_GROUND
+local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
 local TARGET_AREA = 1
 local TARGET_WARP = 0
 -- local COOLDOWN_FRAMES = 10
@@ -689,7 +689,7 @@ function savemap(name)
 end
 hook_chat_command("savemap", "[name] Save all objects on map", savemap)
 
-local function loadmap(name)
+hook_chat_command("loadmap", "[name] Load map <name> or default if no name given (host only)", function(name)
   if not network_is_server() then
     if gMarioStates[0].playerIndex == 0 then
       djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
@@ -817,7 +817,7 @@ local function loadmap(name)
   djui_popup_create(string.format("\\#00ff00\\Map loaded: %s\\nObjects spawned: %d", filename, numObjectsLoaded), 4)
 
   return true
-end
+end)
 
 hook_chat_command("clearall", "Deletes all objects on this map spawned using the mod", function(unused)
   if not network_is_server() then
@@ -851,6 +851,8 @@ hook_chat_command("clearall", "Deletes all objects on this map spawned using the
   end
 
   djui_popup_create("\\#44ff44\\All spawned objects deleted!", 2)
+
+  return true
 end)
 
 -- respawn
