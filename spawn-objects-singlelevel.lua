@@ -243,8 +243,8 @@ local categories = {
         items = {
             { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
             { behavior = id_bhvBigBully, model = E_MODEL_BULLY_BOSS, name = "Big Bully", spawnOffset = 400, spawnYaw = 32768, spawnPitch = 0, spawnRoll = 0},
-            {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
-            { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
+            -- {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
+            -- { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
             { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser" },
             {name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2},
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
@@ -316,7 +316,7 @@ local categories = {
             { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star", spawnYOffset = 100},
             {name = "RR cruiser wing", model = E_MODEL_RR_CRUISER_WING, behavior = id_bhvRrCruiserWing},
             {name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel},
-            { behavior = id_bhvToadMessage, model = E_MODEL_TOAD, name = "Toad"},
+            -- { behavior = id_bhvToadMessage, model = E_MODEL_TOAD, name = "Toad"},
         }
     },
     {
@@ -478,10 +478,11 @@ function spawn_selected(m)
         o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
       end
 
-      -- -- Hoot not grabbable if this code used, but conversation gets skipped
+      -- -- -- Hoot not grabbable if this code used, but conversation gets skipped
       -- if obj.behavior == id_bhvHoot then
       --   print('imahoot')
       --   o.oIntangibleTimer = 0
+      --   o.header.gfx.node.flags = o.header.gfx.node.flags | GRAPH_RENDER_ACTIVE
       --   o.oHootAvailability = HOOT_AVAIL_READY_TO_FLY
       -- end
 
