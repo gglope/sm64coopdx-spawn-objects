@@ -74,16 +74,16 @@ local categories = {
         items = {
             { behavior = id_bhvKoopaShell, model = E_MODEL_KOOPA_SHELL, name = "Shell", spawnOffset = 0, spawnYaw = 0, spawnPitch = 0, spawnRoll = 0},
             { behavior = id_bhvRecoveryHeart, model = E_MODEL_HEART, name = "Recovery Heart", spawnYOffset = 100 },
+            {name = "Ten coins spawn", model = E_MODEL_YELLOW_COIN, behavior = id_bhvTenCoinsSpawn},
+            {name = "1UP", behavior = id_bhv1Up, model = E_MODEL_1UP},
             { behavior = id_bhvWingCap, model = E_MODEL_TOADS_WING_CAP, name = "Wing Cap", spawnOffset = 200 },
             { behavior = id_bhvMetalCap, model = E_MODEL_TOADS_METAL_CAP, name = "Metal Cap", spawnOffset = 200 },
             { behavior = id_bhvVanishCap, model = E_MODEL_TOADS_CAP, name = "Vanish Cap", spawnOffset = 200 },
-            {name = "1UP", behavior = id_bhv1Up, model = E_MODEL_1UP},
             {name = "Jumping 1UP", behavior = id_bhv1upJumpOnApproach, model = E_MODEL_1UP},
-            {name = "Hidden 1up", model = E_MODEL_1UP, behavior = id_bhvHidden1up},
+            -- {name = "Hidden 1up", model = E_MODEL_1UP, behavior = id_bhvHidden1up},
             {name = "Hidden 1up pole", model = E_MODEL_1UP, behavior = id_bhvHidden1upInPole},
-            {name = "Coin formation", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN},
+            {name = "Coin formation", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 200},
             {name = "Red coin", model = E_MODEL_RED_COIN, behavior = id_bhvRedCoin, spawnOffset = 100 },
-            {name = "Ten coins spawn", model = E_MODEL_YELLOW_COIN, behavior = id_bhvTenCoinsSpawn},
             {name = "Blue coin jumping", behavior = id_bhvBlueCoinJumping, model = E_MODEL_BLUE_COIN},
             {name = "Blue coin sliding", behavior = id_bhvBlueCoinSliding, model = E_MODEL_BLUE_COIN},
             {name = "Marios cap", model = E_MODEL_MARIOS_CAP, behavior = id_bhvNormalCap},
@@ -471,14 +471,19 @@ function spawn_selected(m)
       -- o.oTimer = 0
       o.oFaceAngleYaw = finalYaw
       o.header.gfx.angle.y = finalYaw
-      o.oMoveAngleYaw = finalYaw
+      -- o.oMoveAngleYaw = finalYaw
 
       -- Fixes cannon yaw
-      print(obj.behavior)
       if obj.behavior == id_bhvCannon then
-        print('imacannon')
         o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
       end
+
+      -- -- Hoot not grabbable if this code used, but conversation gets skipped
+      -- if obj.behavior == id_bhvHoot then
+      --   print('imahoot')
+      --   o.oIntangibleTimer = 0
+      --   o.oHootAvailability = HOOT_AVAIL_READY_TO_FLY
+      -- end
 
       o.oFaceAnglePitch = finalPitch
       o.header.gfx.angle.x = finalPitch
