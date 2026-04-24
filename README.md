@@ -44,6 +44,10 @@ IN DEVELOPMENT
 
 Tracks spanwed object in tables. Enables save/load map and persistence (objects despawned from last player exiting a level gets respawned when a player enter that level)
 
+# CREDITS
+
+- [Beard's Mod](https://mods.sm64coopdx.com/mods/beards-mod.181/)
+
 # Useful info about developing
 
 General:
