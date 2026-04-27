@@ -4,7 +4,22 @@ THIS MOD IS STILL IN DEVELOPMENT.
 
 Spawn objects from a categorized menu and delete nearest object. Dending on the script version more functions are available (for example save and persistence).
 
-# Menu options
+# Bugs
+
+- Desync problems when nearest object to delete is a composite object, and during /clearall
+
+# Settings and commands
+
+## Commands
+
+- D-Pad right and left to navigate submmenu
+- X to spawn
+- Y to delete nearest object
+- /savemap to save all the spawned objects from every player
+- /loadmap (host only) to load saved map
+- /clearall (host only) delete all mod spawned objects
+
+## Settings
 
 Available to anyone:
 
@@ -30,13 +45,10 @@ The simpler one. Spawn objects using a menu and delete the nearest object.
 
 TODO
 
-# spawn-objects-simplesave
+# spawn-objects-singlelevel
 
-Adds save map functionality, but does not track objects. Every spawned object is marked, so that during save process only the marked objects will be saved.
-
-- spawning code is executed on the host device, despite who launched it
-- created objects are tracked on the host device only
-- persistence (as said above)
+- No persistence. Hence only a single level is allowed
+- Allows map saving (all) and loading (host only). Make sure to delete everything before using /loadmap
 
 # spawn-obejcts-persistence
 
