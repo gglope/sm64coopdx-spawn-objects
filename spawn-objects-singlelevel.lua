@@ -1347,8 +1347,8 @@ hook_chat_command("loadmap", "[name] Load map <name> or default if no name given
                         --
                         -- o.oTimer = 0
 
-                        if obj.behavior == id_bhvCannon then
-                            o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
+                        if beh == id_bhvCannon then
+                            o.oBehParams2ndByte = (yaw >> 8) & 0xFF
                         end
 
                         network_init_object(o, true, {
