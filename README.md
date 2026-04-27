@@ -62,6 +62,12 @@ Tracks spanwed object in tables. Enables save/load map and persistence (objects 
 
 # Useful info about developing
 
+syntax fmt
+
+```bash
+stylua --indent-type Spaces --indent-width 4 --line-endings Unix spawn-objects-singlelevel.lua
+```
+
 General:
 - gGlobalSyncTable are not good to track the object
 
