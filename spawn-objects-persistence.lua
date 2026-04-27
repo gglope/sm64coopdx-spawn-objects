@@ -1143,7 +1143,7 @@ function spawn_selected(m)
 
         o.oModPlayerId = gNetworkPlayers[0].globalIndex + 1
         o.oModObjNum = next_object_id
-        -- o.oModLvlNum = gNetworkPlayers[0].currLevelNum
+        o.oModLvlNum = gNetworkPlayers[0].currLevelNum
 
         network_init_object(o, true, {
             "oFaceAngleYaw",
@@ -1310,13 +1310,11 @@ local function handle_object_deletion(m)
         -- Delete the children first
         for _, child in ipairs(children) do
             -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
-            child.oModSpawnedFlag = 0
             child.activeFlags = 0
             obj_mark_for_deletion(child)
         end
 
         -- Then delete the main object
-        nearest.oModSpawnedFlag = 0
         nearest.activeFlags = 0
         obj_mark_for_deletion(nearest)
 
@@ -1341,32 +1339,33 @@ end
 --     isClearingLevel = false
 -- end)
 --
--- hook_event(HOOK_ON_SYNC_OBJECT_UNLOAD, function(obj)
---   if not isClearingLevel and obj.oModPlayerId or 0 > 0 and obj.oModObjNum or 0 > 0 then
---     -- TODO: What if the object is not found?
---     -- Find the tracked object that has the same two ids as nearest
---     -- backwards
---     local levelNum = obj.oModLvlNum
---     local spawnList = tracked_objects[levelNum] or {}
---     for i = #spawnList, 1, -1 do
---       -- Check if same object by comparing the IDs
---       if spawnList[i].oModPlayerId == obj.oModPlayerId and spawnList[i].oModObjNum == obj.oModObjNum then
---         nearestIndex = i
---         print('HOOK_ON_SYNC_OBJECT_UNLOAD:')
---         break  -- only one object
---       end
---     end
---
---     -- print('HOOK_ON_SYNC_OBJECT_UNLOAD:' .. tracked_objects[levelNum].nearestIndex or 'nothing here')
---
---     -- table.remove(tracked_objects[levelNum], nearest_idx)
---     table.remove(spawnList, nearest_idx)
---
---   end
--- end)
+hook_event(HOOK_ON_SYNC_OBJECT_UNLOAD, function(obj)
+  if not isClearingLevel and obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+    print('hook_on_object_unload')
+    -- TODO: What if the object is not found?
+    -- Find the tracked object that has the same two ids as nearest
+    -- backwards
+    local levelNum = obj.oModLvlNum
+    local spawnList = tracked_objects[levelNum] or {}
+    for i = #spawnList, 1, -1 do
+      -- Check if same object by comparing the IDs
+      if spawnList[i].oModPlayerId == obj.oModPlayerId and spawnList[i].oModObjNum == obj.oModObjNum then
+        nearestIndex = i
+        print('HOOK_ON_SYNC_OBJECT_UNLOAD:')
+        break  -- only one object
+      end
+    end
+
+    -- print('HOOK_ON_SYNC_OBJECT_UNLOAD:' .. tracked_objects[levelNum].nearestIndex or 'nothing here')
+
+    -- table.remove(tracked_objects[levelNum], nearest_idx)
+    table.remove(spawnList, nearest_idx)
+
+  end
+end)
 
 -- local function savemap(name)
-function savemap(name)
+hook_chat_command("savemap", "[name] Save all objects on map", function(name)
     local modFs = mod_fs_get() or mod_fs_create()
     if not modFs then
         djui_popup_create("\\#ff4444\\Failed to create ModFS!", 2)
@@ -1381,40 +1380,29 @@ function savemap(name)
     file:set_text_mode(true)
     file:rewind()
 
-    local savedCount = 0
-
-    for list = 0, NUM_OBJ_LISTS - 1 do
-        local o = obj_get_first(list)
-        while o ~= nil do
-            if o.oModSpawnedFlag == 1 then
-                -- TODO: bug that causes deleted objects to be saved
-                -- if o.oModSpawnedFlag == 1 and (o.activeFlags & ACTIVE_FLAG_ACTIVE) ~= 0 then
-                file:write_string(string.format(
-                    "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
-                    -- "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
-                    get_id_from_behavior(o.behavior),
-                    -- obj_get_model_id_extended(o),
-                    o.oModModelID,
-                    o.oHomeX,
-                    o.oHomeY,
-                    o.oHomeZ,
-                    o.header.gfx.angle.x, -- pitch
-                    o.header.gfx.angle.y, -- yaw
-                    o.header.gfx.angle.z, -- roll
-                    o.oBehParams or 0
-                ))
-                savedCount = savedCount + 1
-            end
-            o = obj_get_next(o)
-        end
+    -- local savedCount = 0
+    local level = gNetworkPlayers[0].currLevelNum
+    for _, item in ipairs(tracked_objects[level]) do
+        file:write_string(string.format(
+            "%d,%d,%.15f,%.15f,%.15f,%d,%d,%d,%d\n",
+            -- "%d,%d,%g,%g,%g,%d,%d,%d,%d\n",
+            level,
+            item.beh,
+            item.model,
+            item.x,
+            item.y,
+            item.z,
+            item.pitch,
+            item.yaw,
+            item.roll,
+            item.behParams))
     end
 
     modFs:save()
-    djui_popup_create(string.format("\\#00ff00\\Map saved. %s\\nObjects number: %d", filename, savedCount), 3)
+    djui_popup_create(string.format("\\#00ff00\\Map saved!", 2))
 
     return true
-end
-hook_chat_command("savemap", "[name] Save all objects on map", savemap)
+end)
 
 hook_chat_command("loadmap", "[name] Load map <name> or default if no name given (host only)", function(name)
     if not network_is_server() then
@@ -1506,7 +1494,6 @@ hook_chat_command("loadmap", "[name] Load map <name> or default if no name given
                             "oFaceAngleYaw",
                             "oFaceAnglePitch",
                             "oFaceAngleRoll",
-                            -- "oModSpawnedFlag",
                             -- "oModModelID",
                             -- "oModSavedPitch",
                             -- "oModSavedYaw",
@@ -1536,14 +1523,14 @@ hook_chat_command("clearall", "Deletes all objects on this map spawned using the
 
     -- There are desync problems with rotating block with flames and ferris wheel
 
+    -- Find children of spawned objects
+    local level = gNetworkPlayers[0].currLevelNum
     local parents = {}
     local children = {}
     for _, list in ipairs(lists) do
         local obj = obj_get_first(list)
         while obj ~= nil do
-            if obj.oModSpawnedFlag == 1 then
-                table.insert(parents, obj)
-            elseif obj.parentObj and obj.parentObj.oModSpawnedFlag == 1 then
+            if obj.parentObj and obj.parentObj.oModPlayerId >= 0 and obj.parentObj.oModObjNum >= 0 then
                 table.insert(children, obj)
             end
             obj = obj_get_next(obj)
@@ -1552,14 +1539,12 @@ hook_chat_command("clearall", "Deletes all objects on this map spawned using the
 
     -- Delete children first
     for _, obj in ipairs(children) do
-        obj.oModSpawnedFlag = 0
         obj.activeFlags = 0
         obj_mark_for_deletion(obj)
     end
 
-    -- Then delete parents
-    for _, obj in ipairs(parents) do
-        obj.oModSpawnedFlag = 0
+    -- Then delete parents. hook on object unload will remove them from table
+    for _, obj in ipairs(tracked_objects[level]) do
         obj.activeFlags = 0
         obj_mark_for_deletion(obj)
     end
