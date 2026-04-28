@@ -1061,10 +1061,20 @@ local function find_nearest_object(m)
 end
 
 local function handle_object_deletion(m)
-    if (m.controller.buttonPressed & Y_BUTTON) == 0 then return end
+    if (m.controller.buttonPressed & Y_BUTTON) == 0 then
+        return
+    end
+
+    -- CONSUME the button so later hook calls in the same frame see it as released
+    m.controller.buttonPressed = m.controller.buttonPressed & ~Y_BUTTON
+
+    local data = get_player_data(m.playerIndex)
+    -- TODO: Check if a popup is created in this case
+    if data.deletionCooldown > 0 then
+        return
+    end
 
     local canDelete = network_is_server() or gGlobalSyncTable.allowGuestDeletion
-
     if not canDelete then
         if m.playerIndex == 0 then
             djui_popup_create("\\#ff4444\\Guest object deletion is disabled by host!", 2)
