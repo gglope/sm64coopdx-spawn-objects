@@ -1065,6 +1065,9 @@ local function handle_object_deletion(m)
         return
     end
 
+    -- Don't decomment
+    -- if m.playerIndex ~= 0 then return end
+
     -- Tried this to fix the double deletion bug, but it causes desync problems
     -- for some reason
     -- -- CONSUME the button so later hook calls in the same frame see it as released
@@ -1091,6 +1094,7 @@ local function handle_object_deletion(m)
             nearest.header.gfx.node.flags = nearest.header.gfx.node.flags | GRAPH_RENDER_INVISIBLE
         end
 
+        print('handle_object_deletion')
         obj_mark_for_deletion(nearest)
 
         -- Popup only for local player
