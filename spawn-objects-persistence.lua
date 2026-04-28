@@ -1012,7 +1012,6 @@ function track_object(oModPlayerId, oModObjNum, levelNum, beh, model, x, y, z, p
 
     print(oModPlayerId)
     print(oModObjNum)
-    -- print(oModObjNum)
 
     table.insert(tracked_objects[levelNum], {
         oModPlayerId = oModPlayerId,
@@ -1334,34 +1333,46 @@ end
 -- hook_event(HOOK_ON_CLEAR_AREAS, function(obj)
 --   isClearingLevel = true
 -- end)
---
+-- 
 -- hook_event(HOOK_ON_LEVEL_INIT, function()
 --     isClearingLevel = false
 -- end)
---
+
 hook_event(HOOK_ON_SYNC_OBJECT_UNLOAD, function(obj)
   if not isClearingLevel and obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
-    print('hook_on_object_unload')
-    -- TODO: What if the object is not found?
-    -- Find the tracked object that has the same two ids as nearest
-    -- backwards
-    local levelNum = obj.oModLvlNum
-    local spawnList = tracked_objects[levelNum] or {}
-    for i = #spawnList, 1, -1 do
-      -- Check if same object by comparing the IDs
-      if spawnList[i].oModPlayerId == obj.oModPlayerId and spawnList[i].oModObjNum == obj.oModObjNum then
-        nearestIndex = i
-        print('HOOK_ON_SYNC_OBJECT_UNLOAD:')
-        break  -- only one object
+    print('hook_on_object_unload 1')
+
+    -- Flatten tracked_object to search for the deleted object, in order to
+    -- avoid putting level number in the objects
+    for level, list in pairs(tracked_objects) do
+      for i = #list, 1, -1 do
+        if list[i].oModPlayerId == obj.oModPlayerId and list[i].oModObjNum == obj.oModObjNum then
+          table.remove(list, i)
+          print('hook_on_object_unload 2')
+          return true
+        end
       end
     end
+  end
+
+    -- -- TODO: What if the object is not found?
+    -- -- Find the tracked object that has the same two ids as nearest
+    -- -- backwards
+    -- local levelNum = obj.oModLvlNum
+    -- local spawnList = tracked_objects[levelNum] or {}
+    -- for i = #spawnList, 1, -1 do
+    --   -- Check if same object by comparing the IDs
+    --   if spawnList[i].oModPlayerId == obj.oModPlayerId and spawnList[i].oModObjNum == obj.oModObjNum then
+    --     nearestIndex = i
+    --     print('HOOK_ON_SYNC_OBJECT_UNLOAD:')
+    --     break  -- only one object
+    --   end
+    -- end
 
     -- print('HOOK_ON_SYNC_OBJECT_UNLOAD:' .. tracked_objects[levelNum].nearestIndex or 'nothing here')
 
     -- table.remove(tracked_objects[levelNum], nearest_idx)
-    table.remove(spawnList, nearest_idx)
-
-  end
+    -- table.remove(spawnList, nearest_idx)
 end)
 
 -- local function savemap(name)
@@ -1453,10 +1464,6 @@ hook_chat_command("loadmap", "[name] Load map <name> or default if no name given
                 -- local roll = tonumber(parts[8]) or 0
                 local roll = tonumber(parts[8])
                 local behParams = tonumber(parts[9])
-
-                -- print(string.format('X: %.15f', x))
-                -- print(string.format('Y: %.15f', y))
-                -- print(string.format('Z: %.15f', z))
 
                 -- TODO: Add temporary else popup that tells if an objects could not load
                 if beh and model and x and y and z then
@@ -1589,10 +1596,8 @@ hook_event(HOOK_ON_HUD_RENDER, function()
     -- title
     djui_hud_set_color(255, 100, 0, 255)
     if inSubmenu then
-        -- djui_hud_print_text(categories[selectedCategory].name:upper(), 20, 78, 1.2)
         djui_hud_print_text(categories[selectedCategory].name:upper(), 20, 78 + offsetY, 1.2)
     else
-        -- djui_hud_print_text("OBJECT SPAWNER", 20, 78, 1.2)
         djui_hud_print_text("OBJECT SPAWNER", 20, 78 + offsetY, 1.2)
     end
 

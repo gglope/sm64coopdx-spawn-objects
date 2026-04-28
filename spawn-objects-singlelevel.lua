@@ -1092,23 +1092,23 @@ local function find_nearest_object(m)
             -- Not allowed to delete the object Mario is interacting with (Shells, Poles, Trees etc.)
             -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
             local isInteracting = false
-            if not isMarioObj and not isDoor then
-                if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
-                    isInteracting = true
-                elseif
-                    (obj == m.interactObj or obj == m.usedObj)
-                    and (
-                        (m.action & ACT_FLAG_ON_POLE) ~= 0
-                        or (m.action & ACT_FLAG_HANGING) ~= 0
-                        or m.action == ACT_READING_NPC_DIALOG
-                        or m.action == ACT_WAITING_FOR_DIALOG
-                        or m.action == ACT_READING_AUTOMATIC_DIALOG
-                        or m.action == ACT_READING_SIGN
-                    )
-                then
-                    isInteracting = true
-                end
-            end
+            -- if not isMarioObj and not isDoor then
+            --     if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
+            --         isInteracting = true
+            --     elseif
+            --         (obj == m.interactObj or obj == m.usedObj)
+            --         and (
+            --             (m.action & ACT_FLAG_ON_POLE) ~= 0
+            --             or (m.action & ACT_FLAG_HANGING) ~= 0
+            --             or m.action == ACT_READING_NPC_DIALOG
+            --             or m.action == ACT_WAITING_FOR_DIALOG
+            --             or m.action == ACT_READING_AUTOMATIC_DIALOG
+            --             or m.action == ACT_READING_SIGN
+            --         )
+            --     then
+            --         isInteracting = true
+            --     end
+            -- end
 
             if not isMarioObj and not isDoor and not isInteracting then
                 -- local dx = obj.oPosX - m.pos.x
@@ -1146,18 +1146,19 @@ local function find_nearest_object(m)
     --
     -- Despite this mechanism, for some object like rotating block with flames,
     -- the flames will still live after the center is deleted
-    local children = {} -- holds all children of the nearest object
-    for _, list in ipairs(lists) do
-        local obj = obj_get_first(list)
-        while obj ~= nil do
-            if obj ~= nearest and obj.parentObj == nearest then
-                table.insert(children, obj)
-            end
-            obj = obj_get_next(obj)
-        end
-    end
+    -- local children = {} -- holds all children of the nearest object
+    -- for _, list in ipairs(lists) do
+    --     local obj = obj_get_first(list)
+    --     while obj ~= nil do
+    --         if obj ~= nearest and obj.parentObj == nearest then
+    --             table.insert(children, obj)
+    --         end
+    --         obj = obj_get_next(obj)
+    --     end
+    -- end
 
-    return nearest, children
+    -- return nearest, children
+    return nearest
 end
 
 local function handle_object_deletion(m)
@@ -1182,7 +1183,8 @@ local function handle_object_deletion(m)
         return
     end
 
-    local nearest, children = find_nearest_object(m)
+    -- local nearest, children = find_nearest_object(m)
+    local nearest = find_nearest_object(m)
     if nearest then
         -- Hide graphics immediately (fixes leftover coin shadows)
         -- if nearest.header and nearest.header.gfx and nearest.header.gfx.node then
@@ -1190,16 +1192,16 @@ local function handle_object_deletion(m)
         -- end
 
         -- Delete the children first
-        for _, child in ipairs(children) do
-            -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
-            child.oModSpawnedFlag = 0
-            child.activeFlags = 0
-            obj_mark_for_deletion(child)
-        end
+        -- for _, child in ipairs(children) do
+        --     -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
+        --     child.oModSpawnedFlag = 0
+        --     child.activeFlags = 0
+        --     obj_mark_for_deletion(child)
+        -- end
 
         -- Then delete the main object
-        nearest.oModSpawnedFlag = 0
-        nearest.activeFlags = 0
+        -- nearest.oModSpawnedFlag = 0
+        -- nearest.activeFlags = 0
         obj_mark_for_deletion(nearest)
 
         -- Popup only for local player
