@@ -1065,8 +1065,10 @@ local function handle_object_deletion(m)
         return
     end
 
-    -- CONSUME the button so later hook calls in the same frame see it as released
-    m.controller.buttonPressed = m.controller.buttonPressed & ~Y_BUTTON
+    -- Tried this to fix the double deletion bug, but it causes desync problems
+    -- for some reason
+    -- -- CONSUME the button so later hook calls in the same frame see it as released
+    -- m.controller.buttonPressed = m.controller.buttonPressed & ~Y_BUTTON
 
     local data = get_player_data(m.playerIndex)
     -- TODO: Check if a popup is created in this case
