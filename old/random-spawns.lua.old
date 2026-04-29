@@ -1,0 +1,8 @@
+local function clear_spawned_objects()
+    for i = #spawnedObjects, 1, -1 do
+        local obj = spawnedObjects[i]
+        if obj then
+            pcall(obj_mark_for_deletion, obj)  -- safe even if object is already gone
+        end
+        table.remove(spawnedObjects, i)
+    end
