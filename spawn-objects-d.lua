@@ -1,4 +1,4 @@
--- name: Spawn Objects (beta)
+-- name: Spawn Objects D (beta)
 -- description: Spawn and delete objects
 
 local vowels = {
@@ -1105,7 +1105,53 @@ local function handle_object_deletion(m)
             djui_popup_create("No nearby object found", 0.5)
         end
     end
+
+    data.deletionCooldown = COOLDOWN_FRAMES_DEL
 end
+
+hook_chat_command("clearall", "Deletes all objects on this map spawned using the mod", function(unused)
+    if not network_is_server() then
+        -- if gMarioStates[0].playerIndex == 0 then
+        --   djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
+        -- end
+        djui_popup_create("\\#ff4444\\Only the host can clear all objects!", 2)
+        return true
+    end
+
+    -- There are desync problems with rotating block with flames and ferris wheel
+
+    local parents = {}
+    local children = {}
+    for _, list in ipairs(lists) do
+        local obj = obj_get_first(list)
+        while obj ~= nil do
+            if obj.oModSpawnedFlag == 1 then
+                table.insert(parents, obj)
+            elseif obj.parentObj and obj.parentObj.oModSpawnedFlag == 1 then
+                table.insert(children, obj)
+            end
+            obj = obj_get_next(obj)
+        end
+    end
+
+    -- Delete children first
+    for _, obj in ipairs(children) do
+        obj.oModSpawnedFlag = 0
+        obj.activeFlags = 0
+        obj_mark_for_deletion(obj)
+    end
+
+    -- Then delete parents
+    for _, obj in ipairs(parents) do
+        obj.oModSpawnedFlag = 0
+        obj.activeFlags = 0
+        obj_mark_for_deletion(obj)
+    end
+
+    djui_popup_create("\\#44ff44\\All spawned objects deleted!", 2)
+
+    return true
+end)
 
 -- respawn
 hook_chat_command("respawn", "Respawn if you get stuck", function(msg)
@@ -1149,7 +1195,7 @@ hook_event(HOOK_ON_HUD_RENDER, function()
 
     local VISIBLE_ITEMS = 15
     -- local startY = 120
-    local startY = 120 + offsetY 
+    local startY = 120 + offsetY
 
     if inSubmenu then
         -- show objects inside the selected category
@@ -1198,26 +1244,48 @@ hook_event(HOOK_ON_HUD_RENDER, function()
     -- #RENDERCOOLDOWNTIMER --
     local m = gMarioStates[0]
     local data = get_player_data(m.playerIndex)
-    if data.cooldown <= 0 then return end
+
+    if data.cooldown <= 0 and data.deletionCooldown <= 0 then
+        return
+    end
 
     djui_hud_set_resolution(RESOLUTION_N64)
 
-    local seconds = math.floor(data.cooldown * 10 / 30) / 10
-    local text = "Spawn cooldown " .. tostring(seconds) .. "s"
-
     local scale = 0.32
     local screenWidth = djui_hud_get_screen_width()
-    local width = djui_hud_measure_text(text) * scale
-    local x = (screenWidth - width) / 2.0
     local y = 8
 
-    -- background box
-    djui_hud_set_color(0, 0, 0, 200)
-    djui_hud_render_rect(x - 4, y, width + 8, 18)
+    -- Spawn cooldown
+    if data.cooldown > 0 then
+        local seconds = math.floor(data.cooldown * 10 / 30) / 10
+        local text = "Spawn cooldown " .. tostring(seconds) .. "s"
 
-    -- text
-    djui_hud_set_color(255, 255, 255, 255)
-    djui_hud_print_text(text, x, y, scale)
+        local width = djui_hud_measure_text(text) * scale
+        local x = (screenWidth - width) / 2.0
+
+        djui_hud_set_color(0, 0, 0, 200)
+        djui_hud_render_rect(x - 4, y, width + 8, 18)
+
+        djui_hud_set_color(255, 255, 255, 255)
+        djui_hud_print_text(text, x, y, scale)
+
+        y = y + 16 -- move down for the next line
+    end
+
+    -- Deletion cooldown
+    if data.deletionCooldown > 0 then
+        local seconds = math.floor(data.deletionCooldown * 10 / 30) / 10
+        local text = "Delete cooldown " .. tostring(seconds) .. "s"
+
+        local width = djui_hud_measure_text(text) * scale
+        local x = (screenWidth - width) / 2.0
+
+        djui_hud_set_color(0, 0, 0, 200)
+        djui_hud_render_rect(x - 4, y, width + 8, 18)
+
+        djui_hud_set_color(255, 255, 255, 255)
+        djui_hud_print_text(text, x, y, scale)
+    end
 end)
 
 hook_event(HOOK_MARIO_UPDATE, function(m)
@@ -1245,6 +1313,9 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
         data.cooldown = data.cooldown - 1
+    end
+    if data.deletionCooldown > 0 then
+        data.deletionCooldown = data.deletionCooldown - 1
     end
 
     -- Y-button deletion

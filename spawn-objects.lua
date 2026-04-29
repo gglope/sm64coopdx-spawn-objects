@@ -1,5 +1,5 @@
 -- name: Spawn Objects (beta)
--- description: Spawn and delete objects
+-- description: Spawn objects
 
 local vowels = {
     ["A"] = true,

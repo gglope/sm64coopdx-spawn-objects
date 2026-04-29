@@ -1,5 +1,5 @@
 -- name: Spawn Objects singlelevel (beta)
--- description: Spawn, delete, save, load (host only) objects (save function, no persistence)
+-- description: Spawn and delete, save and load (host only) (no persistence)
 --
 -- Sections:
 -- #RENDERMENU
@@ -1166,10 +1166,7 @@ local function handle_object_deletion(m)
         return
     end
 
-    -- Tried this to fix the double deletion bug, but it causes desync problems
-    -- for some reason
-    -- -- CONSUME the button so later hook calls in the same frame see it as released
-    -- m.controller.buttonPressed = m.controller.buttonPressed & ~Y_BUTTON
+    if m.playerIndex ~= 0 then return end
 
     local data = get_player_data(m.playerIndex)
     -- TODO: Check if a popup is created in this case
@@ -1652,3 +1649,4 @@ local function fix_wooden_post(obj)
     obj_set_model_extended(obj, E_MODEL_WOODEN_POST)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
+
