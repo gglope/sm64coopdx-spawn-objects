@@ -995,26 +995,6 @@ function spawn_selected(m)
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 end
 
-hook_chat_command("die", "Use this to die", function(msg)
-    local m = gMarioStates[0]
-    -- local np = gNetworkPlayers[0]
-
-    -- -- Respawn + delete all created objects
-    -- if msg == "delobj" then
-    --   warp_to_level(np.currLevelNum, np.currAreaIndex, 0x0A)
-
-    --   djui_popup_create("Respawned at start, created objects deleted", 3)
-    --   return true
-    -- end
-
-    -- Respawn  without deleting objects
-    m.health = 0
-    set_mario_action(m, ACT_DEATH, 0)
-
-    djui_popup_create("Respawned at start", 3)
-    return true
-end)
-
 -- respawn
 hook_chat_command("respawn", "Respawn if you get stuck", function(msg)
     -- local m = gMarioStates[0]
@@ -1182,3 +1162,4 @@ local function fix_wooden_post(obj)
     obj_set_model_extended(obj, E_MODEL_WOODEN_POST)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
+
