@@ -1433,8 +1433,6 @@ hook_chat_command("respawn", "Respawn if you get stuck", function(msg)
     -- return true
 end)
 
--- menu
-
 hook_event(HOOK_ON_HUD_RENDER, function()
     if gMarioStates[0].action == ACT_DEATH or gMarioStates[0].action == ACT_GAME_OVER then
         return

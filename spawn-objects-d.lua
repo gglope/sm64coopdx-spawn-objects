@@ -9,14 +9,21 @@ local vowels = {
     ["U"] = true,
 }
 
--- local TARGET_LEVEL = LEVEL_BOB
--- local TARGET_LEVEL = LEVEL_RR
-local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
-local TARGET_AREA = 1
-local TARGET_WARP = 0
 local COOLDOWN_FRAMES = 10
 -- local COOLDOWN_FRAMES = 80
+local COOLDOWN_FRAMES_DEL = 10
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+
+-- Menu: allow guest object deletion
+gGlobalSyncTable.allowGuestDeletion = true
+local function on_guest_deletion_toggle(index, value)
+    if network_is_server() then
+        gGlobalSyncTable.allowGuestDeletion = value
+    end
+end
+if network_is_server() then
+    hook_mod_menu_checkbox("Allow Guest Object Deletion", true, on_guest_deletion_toggle)
+end
 
 -- Menu: spawn objects always upright?
 local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or true
@@ -848,6 +855,7 @@ local function get_player_data(playerIndex)
     if not playerData[playerIndex] then
         playerData[playerIndex] = {
             cooldown = 0,
+            deletionCooldown = 0,
         }
     end
     return playerData[playerIndex]
@@ -995,6 +1003,107 @@ function spawn_selected(m)
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 end
 
+-- used by delete object
+local function find_nearest_object(m)
+    local nearest = nil
+    local minDistSq = 1200 * 1200   -- reasonable range limit
+
+    -- List of object lists
+    local lists = {
+        OBJ_LIST_DESTRUCTIVE,
+        OBJ_LIST_GENACTOR,
+        OBJ_LIST_PUSHABLE,      -- Goombas, Koopas, etc.
+        OBJ_LIST_LEVEL,
+        OBJ_LIST_DEFAULT,
+        OBJ_LIST_SURFACE,       -- Thwomp, Dorrie, Submarine, many platforms
+        OBJ_LIST_POLELIKE,      -- Trees, Tweester, etc.
+        OBJ_LIST_SPAWNER,
+        -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
+    }
+
+    for _, list in ipairs(lists) do
+        local obj = obj_get_first(list)
+        while obj ~= nil do
+            -- Skip any player's Mario object
+            local isMarioObj = false
+            for i = 0, MAX_PLAYERS - 1 do
+                if gMarioStates[i] and gMarioStates[i].marioObj == obj then
+                    isMarioObj = true
+                    break
+                end
+            end
+
+            -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
+            local isDoor = false
+            if not isMarioObj then
+                -- local bhv = obj.behavior
+                if obj.oInteractType == INTERACT_DOOR or
+                   obj.oInteractType == INTERACT_WARP_DOOR then
+                     isDoor = true
+                end
+            end
+
+            if not isMarioObj and not isDoor then
+                local dx = obj.oPosX - m.pos.x
+                local dy = obj.oPosY - m.pos.y
+                local dz = obj.oPosZ - m.pos.z
+                local distSq = dx * dx + dy * dy + dz * dz
+                if distSq < minDistSq then
+                    minDistSq = distSq
+                    nearest = obj
+                end
+            end
+            obj = obj_get_next(obj)
+        end
+    end
+
+    return nearest
+end
+
+local function handle_object_deletion(m)
+    if (m.controller.buttonPressed & Y_BUTTON) == 0 then
+        return
+    end
+
+    if m.playerIndex ~= 0 then return end
+
+    local data = get_player_data(m.playerIndex)
+    -- TODO: Check if a popup is created in this case
+    if data.deletionCooldown > 0 then
+        return
+    end
+
+    local canDelete = network_is_server() or gGlobalSyncTable.allowGuestDeletion
+    if not canDelete then
+        if m.playerIndex == 0 then
+            djui_popup_create("\\#ff4444\\Guest object deletion is disabled by host!", 2)
+        end
+        return
+    end
+
+    local nearest = find_nearest_object(m)
+    if nearest then
+        -- Hide graphics immediately (fixes leftover coin shadows)
+        if nearest.header and nearest.header.gfx and nearest.header.gfx.node then
+            nearest.header.gfx.node.flags = nearest.header.gfx.node.flags | GRAPH_RENDER_INVISIBLE
+        end
+
+        print('handle_object_deletion')
+        obj_mark_for_deletion(nearest)
+
+        -- Popup only for local player
+        if m.playerIndex == 0 then
+            djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
+        end
+    else
+        if m.playerIndex == 0 then
+            djui_popup_create("No nearby object found", 0.5)
+        end
+    end
+end
+
+-- ====================== PERSONAL RESET (any player) ======================
+-- Works in ALL situations (including soft-locks, 0 HP under logs, broken dialogues, etc.)
 hook_chat_command("die", "Use this to die", function(msg)
     local m = gMarioStates[0]
     -- local np = gNetworkPlayers[0]
@@ -1015,26 +1124,8 @@ hook_chat_command("die", "Use this to die", function(msg)
     return true
 end)
 
--- respawn
-hook_chat_command("respawn", "Respawn if you get stuck", function(msg)
-    -- local m = gMarioStates[0]
-    -- local np = gNetworkPlayers[0]
-
-    -- Respawn
-    warp_to_level(TARGET_LEVEL, TARGET_AREA, TARGET_WARP)
-    return true
-
-    -- m.health = 0
-    -- set_mario_action(m, ACT_DEATH, 0)
-    -- return true
-end)
-
-hook_event(HOOK_ON_HUD_RENDER, function()
-    if gMarioStates[0].action == ACT_DEATH or gMarioStates[0].action == ACT_GAME_OVER then
-        return
-    end
-
-    -- #RENDERMENU --
+-- menu
+function render_menu()
     -- This moves the entire menu up or down
     local offsetY = 70
 
@@ -1099,11 +1190,15 @@ hook_event(HOOK_ON_HUD_RENDER, function()
         end
     end
 
+    -- instructions at bottom
     djui_hud_set_color(180, 180, 180, 200)
+    -- djui_hud_print_text("D-PAD L/R = submenu    X = spawn", 25, 510, 0.85)
+    -- djui_hud_print_text("Y = delete nearest object", 25, 510 + 20, 0.85)
     djui_hud_print_text("D-PAD L/R = submenu    X = spawn", 25, 510 + offsetY, 0.85)
     djui_hud_print_text("Y = delete nearest object", 25, 530 + offsetY, 0.85)
+end
 
-    -- #RENDERCOOLDOWNTIMER --
+function render_cooldown_timer()
     local m = gMarioStates[0]
     local data = get_player_data(m.playerIndex)
     if data.cooldown <= 0 then return end
@@ -1126,59 +1221,29 @@ hook_event(HOOK_ON_HUD_RENDER, function()
     -- text
     djui_hud_set_color(255, 255, 255, 255)
     djui_hud_print_text(text, x, y, scale)
-end)
+end
 
+function on_hud_render()
+    if gMarioStates[0].action == ACT_DEATH or gMarioStates[0].action == ACT_GAME_OVER then return end
+    render_menu()
+    render_cooldown_timer()
+end
+
+-- ====================== HOOKS ======================
 hook_event(HOOK_MARIO_UPDATE, function(m)
-    -- m.health = 0x880   -- or 0x8FF; both are common "full health" values in SM64 Lua mods
-    -- m.health = 0xFFF
-
-    -- Invincibility timer (extra safety)
-    -- m.invincTimer = 60
-
-    -- Optional: instantly cancel any death action and put Mario back into idle
-    -- local deathActions = {
-    --     ACT_DEATH_ON_BACK, ACT_DEATH_ON_STOMACH, ACT_DEATH_PLUNGE,
-    --     ACT_QUICKSAND_DEATH, ACT_SUFFOCATION, ACT_WATER_DEATH,
-    --     ACT_DROWNING, ACT_ELECTROCUTION, ACT_BURNING_JUMP,
-    --     ACT_BURNING_FALL
-    -- }
-    -- for _, act in ipairs(deathActions) do
-    --     if m.action == act then
-    --         set_mario_action(m, ACT_IDLE, 0)
-    --         break
-    --     end
-    -- end
-
     -- cooldown for every player
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
         data.cooldown = data.cooldown - 1
     end
 
+    -- Y-button deletion
+    handle_object_deletion(m)
+
     -- only local player (index 0) controls the spawn menu
-    if m.playerIndex ~= 0 then
-        return
-    end
+    if m.playerIndex ~= 0 then return end
     move_selection(m)
     spawn_selected(m)
 end)
+hook_event(HOOK_ON_HUD_RENDER, on_hud_render)
 
--- Gives ferris wheel the blue platform instead of error model
-local function fix_ferris_wheel(obj)
-    obj_set_model_extended(obj, E_MODEL_BITS_BLUE_PLATFORM)
-
-    if obj.parentObj ~= nil then
-        obj.oMoveAngleYaw = obj.parentObj.oFaceAngleYaw
-    end
-end
-hook_behavior(id_bhvFerrisWheelPlatform, OBJ_LIST_SURFACE, false, fix_ferris_wheel, nil)
-
--- Replace chain chomp metallic balls
-local function fix_chain_chomp_ball(obj)
-    obj_set_model_extended(obj, E_MODEL_METALLIC_BALL)
-end
-hook_behavior(id_bhvChainChompChainPart, OBJ_LIST_GENACTOR, false, fix_chain_chomp_ball, nil)
-local function fix_wooden_post(obj)
-    obj_set_model_extended(obj, E_MODEL_WOODEN_POST)
-end
-hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
