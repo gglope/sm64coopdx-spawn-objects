@@ -1081,11 +1081,8 @@ function spawn_selected(m)
     end)
 
     if o then
-        print("increment")
         next_object_id = next_object_id + 1
     end
-    -- print('increment')
-    -- next_object_id = next_object_id + 1
 
     data.cooldown = COOLDOWN_FRAMES
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
@@ -1108,9 +1105,16 @@ local function find_nearest_object(m)
                 end
             end
 
+            -- Only objects spawned using the mod are deletable.
+            -- This is because vanilla objects can't be identified
+            local isDeletable = false
+            if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+                isDeletable = true
+            end
+
             -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
             local isDoor = false
-            if not isMarioObj then
+            if not isMarioObj and isDeletable then
                 -- local bhv = obj.behavior
                 if obj.oInteractType == INTERACT_DOOR or obj.oInteractType == INTERACT_WARP_DOOR then
                     isDoor = true
@@ -1140,7 +1144,7 @@ local function find_nearest_object(m)
             -- end
 
             -- if not isMarioObj and not isDoor and not isInteracting then
-            if not isMarioObj and not isDoor then
+            if not isMarioObj and not isDoor and isDeletable then
                 local dx = obj.oPosX - m.pos.x
                 local dy = obj.oPosY - m.pos.y
                 local dz = obj.oPosZ - m.pos.z
