@@ -9,14 +9,17 @@ local vowels = {
     ["U"] = true,
 }
 
+-- Parameters
+local COOLDOWN_FRAMES = 10
+-- local COOLDOWN_FRAMES = 80
+local COOLDOWN_FRAMES_DEL = 10
+local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+
 -- local TARGET_LEVEL = LEVEL_BOB
 -- local TARGET_LEVEL = LEVEL_RR
 local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
 local TARGET_AREA = 1
 local TARGET_WARP = 0
-local COOLDOWN_FRAMES = 10
--- local COOLDOWN_FRAMES = 80
-local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
 
 -- Menu: spawn objects always upright?
 local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or true

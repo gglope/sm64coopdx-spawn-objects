@@ -1,12 +1,6 @@
 -- name: Spawn Objects ss (beta)
 -- description: Spawn and delete, save and load (host only), no persistence
 --
--- Sections:
--- #RENDERMENU
--- #RENDERCOOLDOWNTIMER
--- TODO
---
-
 -- KNOWN_BUGS:
 -- - (1) When an object id deleted and the player saves right after, that
 -- object might appears in the table because still fullt despawned. When you
@@ -27,15 +21,20 @@ local vowels = {
     ["U"] = true,
 }
 
+-- Parameters
+local COOLDOWN_FRAMES = 10
+-- local COOLDOWN_FRAMES = 80
+local COOLDOWN_FRAMES_DEL = 10
+local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+
 -- local TARGET_LEVEL = LEVEL_BOB
 -- local TARGET_LEVEL = LEVEL_RR
 local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
 local TARGET_AREA = 1
 local TARGET_WARP = 0
-local COOLDOWN_FRAMES = 10
--- local COOLDOWN_FRAMES = 80
-local COOLDOWN_FRAMES_DEL = 10
-local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+local PACKET_DELOBJ = 0
+local PACKET_DELALL = 1
+local next_object_id = 1 -- id of tracked objects
 
 -- List of object lists
 local lists = {
@@ -50,9 +49,11 @@ local lists = {
     -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
 }
 
+-- This two together form the id of an object
 define_custom_obj_fields({
-    oModSpawnedFlag = "u32", -- mod spawned objects are flagged
-    oModModelID = "s32", -- model id, saved into the object itself
+    oModPlayerId = "u32",
+    oModObjNum = "u32",
+    -- oModLvlNum = "u32",
 })
 
 -- Menu: allow guest object deletion
@@ -967,6 +968,71 @@ function move_selection(m)
     play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
 end
 
+-- packets used to:
+-- - propagate deletions
+-- - Others: TODO
+hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
+    local level = packet.level
+
+    print("Packet received: " .. packet.type)
+
+    -- Only if player who deleted is in the same level of the local player
+    if packet.type == PACKET_DELOBJ and level == gNetworkPlayers[0].currLevelNum then
+        local found = false
+        local foundObj
+        for _, list in ipairs(lists) do
+            local obj = obj_get_first(list)
+            while obj ~= nil and found == false do
+                print("oModPlayerId: " .. packet.oModPlayerId)
+                print("oModObjNum: " .. packet.oModObjNum)
+
+                if obj and obj.oModPlayerId == packet.oModPlayerId and obj.oModObjNum == packet.oModObjNum then
+                    found = true
+                    foundObj = obj
+                    print("Found true")
+                end
+                obj = obj_get_next(obj)
+            end
+
+            if found == true then
+                break
+            end
+        end
+
+        -- Find all the children of the object to delete
+        if foundObj ~= nil then
+          local children = {}
+          local idx = 1
+          for _, list in ipairs(lists) do
+              local obj = obj_get_first(list)
+              while obj ~= nil do
+                  if obj and obj ~= foundObj and obj.parentObj == foundObj then
+                      print('Found children ' .. idx)
+                      idx = idx + 1
+                      table.insert(children, obj)
+                  end
+                  obj = obj_get_next(obj)
+              end
+          end
+
+          -- Delete all the children of the object
+          for _, child in ipairs(children) do
+              -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
+              child.activeFlags = 0
+              obj_mark_for_deletion(child)
+          end
+
+          -- Then delete the main object
+          foundObj.activeFlags = 0
+          obj_mark_for_deletion(foundObj)
+        end
+    -- Only if the host (who requested clearall) and the local player are in the same level
+    elseif packet.type == PACKET_DELALL and level == gNetworkPlayers[0].currLevelNum then
+        -- Delete all objects as well
+        clearall(true)
+    end
+end)
+
 function spawn_selected(m)
     if m.controller.buttonPressed & X_BUTTON == 0 then
         return
@@ -1009,12 +1075,12 @@ function spawn_selected(m)
         finalRoll = m.faceAngle.z + (obj.spawnRoll or 0)
     end
 
-    spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
+    local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
         -- See KNOWN_BUGS (3) at the top of this file
-        -- o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
         -- o.oFlags = o.oFlags & ~OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW
-        -- o.oTimer = 0
-        -- o.oOpacity = 255  not working for ttc objects
+        o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+        o.oTimer = 0
+        -- o.oOpacity = 255  -- not working for ttc objects
         -- obj.oBehParams2ndByte = 0
         o.oFaceAngleYaw = finalYaw
         o.header.gfx.angle.y = finalYaw
@@ -1040,17 +1106,15 @@ function spawn_selected(m)
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
         end
 
-        o.oModSpawnedFlag = 1
-        o.oModModelID = obj.model
+        o.oModPlayerId = gNetworkPlayers[0].globalIndex + 1
+        o.oModObjNum = next_object_id
+        -- o.oModLvlNum = gNetworkPlayers[0].currLevelNum
 
-        network_init_object(o, true, {
-            "oFaceAngleYaw",
-            "oFaceAnglePitch",
-            "oFaceAngleRoll",
-            "oModSpawnedFlag",
-            "oModModelID",
-        })
     end)
+
+    if o then
+        next_object_id = next_object_id + 1
+    end
 
     data.cooldown = COOLDOWN_FRAMES
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
@@ -1073,21 +1137,26 @@ local function find_nearest_object(m)
                 end
             end
 
-            -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
-            -- Commented because in this version of the mod doors are delete at level start anyway
-            local isDoor = false
-            -- if not isMarioObj then
-            --     -- local bhv = obj.behavior
-            --     if obj.oInteractType == INTERACT_DOOR or
-            --        obj.oInteractType == INTERACT_WARP_DOOR then
-            --          isDoor = true
-            --     end
-            -- end
+            -- Only objects spawned using the mod are deletable.
+            -- This is because vanilla objects can't be identified
+            local isDeletable = false
+            if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+                isDeletable = true
+            end
 
-            -- ACT_TALKING does not solve problems with conversations
-            -- Not allowed to delete the object Mario is interacting with (Shells, Poles, Trees etc.)
-            -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
-            local isInteracting = false
+            -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
+            local isDoor = false
+            if not isMarioObj and isDeletable then
+                -- local bhv = obj.behavior
+                if obj.oInteractType == INTERACT_DOOR or obj.oInteractType == INTERACT_WARP_DOOR then
+                    isDoor = true
+                end
+            end
+
+            -- -- ACT_TALKING does not solve problems with conversations
+            -- -- Not allowed to delete the object Mario is interacting with (Shells, Poles, Trees etc.)
+            -- -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
+            -- local isInteracting = false
             -- if not isMarioObj and not isDoor then
             --     if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
             --         isInteracting = true
@@ -1106,7 +1175,8 @@ local function find_nearest_object(m)
             --     end
             -- end
 
-            if not isMarioObj and not isDoor and not isInteracting then
+            -- if not isMarioObj and not isDoor and not isInteracting then
+            if not isMarioObj and not isDoor and isDeletable then
                 -- local dx = obj.oPosX - m.pos.x
                 -- local dy = obj.oPosY - m.pos.y
                 -- local dz = obj.oPosZ - m.pos.z
@@ -1142,27 +1212,27 @@ local function find_nearest_object(m)
     --
     -- Despite this mechanism, for some object like rotating block with flames,
     -- the flames will still live after the center is deleted
-    -- local children = {} -- holds all children of the nearest object
-    -- for _, list in ipairs(lists) do
-    --     local obj = obj_get_first(list)
-    --     while obj ~= nil do
-    --         if obj ~= nearest and obj.parentObj == nearest then
-    --             table.insert(children, obj)
-    --         end
-    --         obj = obj_get_next(obj)
-    --     end
-    -- end
+    local children = {} -- holds all children of the nearest object
+    for _, list in ipairs(lists) do
+        local obj = obj_get_first(list)
+        while obj ~= nil do
+            if obj ~= nearest and obj.parentObj == nearest then
+                print('found children')
+                table.insert(children, obj)
+            end
+            obj = obj_get_next(obj)
+        end
+    end
 
-    -- return nearest, children
-    return nearest
+    return nearest, children
+
+    -- return nearest
 end
 
 local function handle_object_deletion(m)
     if (m.controller.buttonPressed & Y_BUTTON) == 0 then
         return
     end
-
-    if m.playerIndex ~= 0 then return end
 
     local data = get_player_data(m.playerIndex)
     -- TODO: Check if a popup is created in this case
@@ -1178,26 +1248,38 @@ local function handle_object_deletion(m)
         return
     end
 
-    -- local nearest, children = find_nearest_object(m)
-    local nearest = find_nearest_object(m)
+    -- local nearest = find_nearest_object(m)
+    local nearest, children = find_nearest_object(m)
     if nearest then
-        -- Hide graphics immediately (fixes leftover coin shadows)
+        -- -- Hide graphics immediately (not working, leftover shadows still there)
         -- if nearest.header and nearest.header.gfx and nearest.header.gfx.node then
         --     nearest.header.gfx.node.flags = nearest.header.gfx.node.flags | GRAPH_RENDER_INVISIBLE
         -- end
 
-        -- Delete the children first
-        -- for _, child in ipairs(children) do
-        --     -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
-        --     child.oModSpawnedFlag = 0
-        --     child.activeFlags = 0
-        --     obj_mark_for_deletion(child)
-        -- end
+        local oModPlayerId = nearest.oModPlayerId
+        local oModObjNum = nearest.oModObjNum
 
-        -- Then delete the main object
-        -- nearest.oModSpawnedFlag = 0
-        -- nearest.activeFlags = 0
+        -- Delete the children first
+        for _, child in ipairs(children) do
+            -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
+            child.activeFlags = 0
+            obj_mark_for_deletion(child)
+        end
+
+        nearest.activeFlags = 0
         obj_mark_for_deletion(nearest)
+
+        -- Tell other Marios to also try to delete the same object
+        -- > 0 cause vanilla objects are 0, and they can't be identified
+        if oModPlayerId > 0 and oModObjNum > 0 then
+            network_send(true, {
+                type = PACKET_DELOBJ,
+                level = gNetworkPlayers[0].currLevelNum,
+                oModPlayerId = oModPlayerId,
+                oModObjNum = oModObjNum,
+            })
+            print("Sent packet: PACKET_DELOBJ")
+        end
 
         -- Popup only for local player
         if m.playerIndex == 0 then
@@ -1548,6 +1630,26 @@ hook_event(HOOK_ON_HUD_RENDER, function()
 end)
 
 hook_event(HOOK_MARIO_UPDATE, function(m)
+    -- m.health = 0x880   -- or 0x8FF; both are common "full health" values in SM64 Lua mods
+    -- m.health = 0xFFF
+
+    -- Invincibility timer (extra safety)
+    -- m.invincTimer = 60
+
+    -- Optional: instantly cancel any death action and put Mario back into idle
+    -- local deathActions = {
+    --     ACT_DEATH_ON_BACK, ACT_DEATH_ON_STOMACH, ACT_DEATH_PLUNGE,
+    --     ACT_QUICKSAND_DEATH, ACT_SUFFOCATION, ACT_WATER_DEATH,
+    --     ACT_DROWNING, ACT_ELECTROCUTION, ACT_BURNING_JUMP,
+    --     ACT_BURNING_FALL
+    -- }
+    -- for _, act in ipairs(deathActions) do
+    --     if m.action == act then
+    --         set_mario_action(m, ACT_IDLE, 0)
+    --         break
+    --     end
+    -- end
+
     -- cooldown for every player
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1557,13 +1659,14 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
         data.deletionCooldown = data.deletionCooldown - 1
     end
 
-    -- Y-button deletion
-    handle_object_deletion(m)
-
     -- only local player (index 0) controls the spawn menu
     if m.playerIndex ~= 0 then
         return
     end
+
+    -- Y-button deletion
+    handle_object_deletion(m)
+
     move_selection(m)
     spawn_selected(m)
 end)
@@ -1587,4 +1690,70 @@ local function fix_wooden_post(obj)
     obj_set_model_extended(obj, E_MODEL_WOODEN_POST)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
+
+hook_event(HOOK_ON_OBJECT_LOAD, function(o)
+  if o.oModPlayerId and o.oModPlayerId > 0 then
+    network_init_object(o, true, {
+        "oModPlayerId",
+        "oModObjNum",
+        -- "oModLvlNum",
+    })
+  end
+end)
+
+-- Used from the hook chat command and also on packet receive PACKET_DELALL
+function clearall(can)
+    if not can and not network_is_server() then
+        -- if gMarioStates[0].playerIndex == 0 then
+        --   djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
+        -- end
+        djui_popup_create("\\#ff4444\\Only the host can clear all objects!", 2)
+        return true
+    end
+
+    local parents = {}
+    local children = {}
+    for _, list in ipairs(lists) do
+        local obj = obj_get_first(list)
+        while obj ~= nil do
+            if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+                table.insert(parents, obj)
+            elseif obj.parentObj and obj.parentObj.oModPlayerId > 0 and obj.parentObj.oModObjNum > 0 then
+                table.insert(children, obj)
+            end
+            obj = obj_get_next(obj)
+        end
+    end
+
+    -- Delete children first
+    for _, obj in ipairs(children) do
+        obj.activeFlags = 0
+        obj_mark_for_deletion(obj)
+    end
+
+    -- Then delete parents
+    for _, obj in ipairs(parents) do
+        -- obj.oModPlayerId = 0
+        -- obj.oModObjNum = 0
+        obj.activeFlags = 0
+        obj_mark_for_deletion(obj)
+    end
+
+    djui_popup_create("\\#44ff44\\All spawned objects deleted!", 2)
+
+    return true
+end
+
+hook_chat_command("clearall", "Deleted all spawned objects on this map", function(unused)
+  clearall(true)
+
+  -- Tell other Marios to also try to delete all spawned objects
+  network_send(true, {
+      type = PACKET_DELALL,
+      level = gNetworkPlayers[0].currLevelNum,
+  })
+  print("Sent packet: PACKET_DELOBJ")
+
+  return true
+end)
 
