@@ -961,21 +961,55 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
 
     -- Only if player who deleted is in the same level of the local player
     if packet.type == PACKET_DELOBJ and level == gNetworkPlayers[0].currLevelNum then
+        local found = false
+        local foundObj
         for _, list in ipairs(lists) do
             local obj = obj_get_first(list)
-            local found = false
             while obj ~= nil and found == false do
                 print("oModPlayerId: " .. packet.oModPlayerId)
                 print("oModObjNum: " .. packet.oModObjNum)
 
                 if obj and obj.oModPlayerId == packet.oModPlayerId and obj.oModObjNum == packet.oModObjNum then
-                    obj_mark_for_deletion(obj)
                     found = true
+                    foundObj = obj
                     print("Found true")
                 end
                 obj = obj_get_next(obj)
             end
+
+            if found == true then
+                break
+            end
         end
+
+        -- Find all the children of the object to delete
+        if foundObj ~= nil then
+          local children = {}
+          local idx = 1
+          for _, list in ipairs(lists) do
+              local obj = obj_get_first(list)
+              while obj ~= nil do
+                  if obj and obj ~= foundObj and obj.parentObj == foundObj then
+                      print('Found children ' .. idx)
+                      idx = idx + 1
+                      table.insert(children, obj)
+                  end
+                  obj = obj_get_next(obj)
+              end
+          end
+
+          -- Delete all the children of the object
+          for _, child in ipairs(children) do
+              -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
+              child.activeFlags = 0
+              obj_mark_for_deletion(child)
+          end
+
+          -- Then delete the main object
+          foundObj.activeFlags = 0
+          obj_mark_for_deletion(foundObj)
+        end
+
     end
     -- elseif packet.type == PACKET_DELOBJS then
     --     local list = tracked_objects[level]
@@ -1035,10 +1069,10 @@ function spawn_selected(m)
 
     local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
         -- See KNOWN_BUGS (3) at the top of this file
-        -- o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
         -- o.oFlags = o.oFlags & ~OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW
-        -- o.oTimer = 0
-        -- o.oOpacity = 255  not working for ttc objects
+        o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+        o.oTimer = 0
+        -- o.oOpacity = 255  -- not working for ttc objects
         -- obj.oBehParams2ndByte = 0
         o.oFaceAngleYaw = finalYaw
         o.header.gfx.angle.y = finalYaw
@@ -1066,18 +1100,8 @@ function spawn_selected(m)
 
         o.oModPlayerId = gNetworkPlayers[0].globalIndex + 1
         o.oModObjNum = next_object_id
-        print("oModPlayerId: " .. o.oModPlayerId)
-        print("oModObjNum: " .. o.oModObjNum)
         -- o.oModLvlNum = gNetworkPlayers[0].currLevelNum
 
-        network_init_object(o, true, {
-            "oFaceAngleYaw",
-            "oFaceAnglePitch",
-            "oFaceAngleRoll",
-            "oModPlayerId",
-            "oModObjNum",
-            -- "oModLvlNum",
-        })
     end)
 
     if o then
@@ -1158,26 +1182,27 @@ local function find_nearest_object(m)
         end
     end
 
-    -- -- children table is needed because, if for example i delete the wheel of a
-    -- -- ferris wheel, the orphaned platforms will start attaching to Mario not
-    -- -- having a parent object anymore
-    -- --
-    -- -- Despite this mechanism, for some object like rotating block with flames,
-    -- -- the flames will still live after the center is deleted
-    -- local children = {} -- holds all children of the nearest object
-    -- for _, list in ipairs(lists) do
-    --     local obj = obj_get_first(list)
-    --     while obj ~= nil do
-    --         if obj ~= nearest and obj.parentObj == nearest then
-    --             table.insert(children, obj)
-    --         end
-    --         obj = obj_get_next(obj)
-    --     end
-    -- end
+    -- children table is needed because, if for example i delete the wheel of a
+    -- ferris wheel, the orphaned platforms will start attaching to Mario not
+    -- having a parent object anymore
+    --
+    -- Despite this mechanism, for some object like rotating block with flames,
+    -- the flames will still live after the center is deleted
+    local children = {} -- holds all children of the nearest object
+    for _, list in ipairs(lists) do
+        local obj = obj_get_first(list)
+        while obj ~= nil do
+            if obj ~= nearest and obj.parentObj == nearest then
+                print('found children')
+                table.insert(children, obj)
+            end
+            obj = obj_get_next(obj)
+        end
+    end
 
-    -- return nearest, children
+    return nearest, children
 
-    return nearest
+    -- return nearest
 end
 
 local function handle_object_deletion(m)
@@ -1199,22 +1224,23 @@ local function handle_object_deletion(m)
         return
     end
 
-    local nearest = find_nearest_object(m)
+    -- local nearest = find_nearest_object(m)
+    local nearest, children = find_nearest_object(m)
     if nearest then
         -- -- Hide graphics immediately (not working, leftover shadows still there)
         -- if nearest.header and nearest.header.gfx and nearest.header.gfx.node then
         --     nearest.header.gfx.node.flags = nearest.header.gfx.node.flags | GRAPH_RENDER_INVISIBLE
         -- end
 
-        -- -- Delete the children first
-        -- for _, child in ipairs(children) do
-        --     -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
-        --     child.activeFlags = 0
-        --     obj_mark_for_deletion(child)
-        -- end
-
         local oModPlayerId = nearest.oModPlayerId
         local oModObjNum = nearest.oModObjNum
+
+        -- Delete the children first
+        for _, child in ipairs(children) do
+            -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
+            child.activeFlags = 0
+            obj_mark_for_deletion(child)
+        end
 
         nearest.activeFlags = 0
         obj_mark_for_deletion(nearest)
@@ -1254,7 +1280,6 @@ hook_chat_command("clearall", "Deletes all objects on this map spawned using the
     end
 
     -- There are desync problems with rotating block with flames and ferris wheel
-
     local parents = {}
     local children = {}
     for _, list in ipairs(lists) do
@@ -1484,3 +1509,14 @@ local function fix_wooden_post(obj)
     obj_set_model_extended(obj, E_MODEL_WOODEN_POST)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
+
+hook_event(HOOK_ON_OBJECT_LOAD, function(o)
+  if o.oModPlayerId and o.oModPlayerId > 0 then
+    network_init_object(o, true, {
+        "oModPlayerId",
+        "oModObjNum",
+        -- "oModLvlNum",
+    })
+  end
+end)
+

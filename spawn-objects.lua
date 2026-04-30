@@ -952,12 +952,12 @@ function spawn_selected(m)
         finalRoll = m.faceAngle.z + (obj.spawnRoll or 0)
     end
 
-    spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
+    local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
         -- See KNOWN_BUGS (3) at the top of this file
-        -- o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
         -- o.oFlags = o.oFlags & ~OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW
-        -- o.oTimer = 0
-        -- o.oOpacity = 255  not working for ttc objects
+        o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+        o.oTimer = 0
+        -- o.oOpacity = 255  -- not working for ttc objects
         -- obj.oBehParams2ndByte = 0
         o.oFaceAngleYaw = finalYaw
         o.header.gfx.angle.y = finalYaw
@@ -983,12 +983,6 @@ function spawn_selected(m)
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
         end
 
-
-        network_init_object(o, true, {
-            "oFaceAngleYaw",
-            "oFaceAnglePitch",
-            "oFaceAngleRoll",
-        })
     end)
 
     data.cooldown = COOLDOWN_FRAMES
@@ -1037,7 +1031,7 @@ hook_event(HOOK_ON_HUD_RENDER, function()
 
     local VISIBLE_ITEMS = 15
     -- local startY = 120
-    local startY = 120 + offsetY 
+    local startY = 120 + offsetY
 
     if inSubmenu then
         -- show objects inside the selected category
