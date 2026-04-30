@@ -25,6 +25,10 @@ local TARGET_AREA = 1
 local TARGET_WARP = 0
 local PACKET_DELOBJ = 0
 local PACKET_DELALL = 1
+local PACKET_ASSIGNID = 2
+local PACKET_REQUESTID = 3
+local usedPlayerIds = {}
+local myPlayerId
 local next_object_id = 1 -- id of tracked objects
 
 -- List of object lists
@@ -955,12 +959,10 @@ end
 -- - propagate deletions
 -- - Others: TODO
 hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
-    local level = packet.level
-
     print("Packet received: " .. packet.type)
 
     -- Only if player who deleted is in the same level of the local player
-    if packet.type == PACKET_DELOBJ and level == gNetworkPlayers[0].currLevelNum then
+    if packet.type == PACKET_DELOBJ and packet.level == gNetworkPlayers[0].currLevelNum then
         local found = false
         local foundObj
         for _, list in ipairs(lists) do
@@ -984,35 +986,55 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
 
         -- Find all the children of the object to delete
         if foundObj ~= nil then
-          local children = {}
-          local idx = 1
-          for _, list in ipairs(lists) do
-              local obj = obj_get_first(list)
-              while obj ~= nil do
-                  if obj and obj ~= foundObj and obj.parentObj == foundObj then
-                      print('Found children ' .. idx)
-                      idx = idx + 1
-                      table.insert(children, obj)
-                  end
-                  obj = obj_get_next(obj)
-              end
-          end
+            local children = {}
+            local idx = 1
+            for _, list in ipairs(lists) do
+                local obj = obj_get_first(list)
+                while obj ~= nil do
+                    if obj and obj ~= foundObj and obj.parentObj == foundObj then
+                        print("Found children " .. idx)
+                        idx = idx + 1
+                        table.insert(children, obj)
+                    end
+                    obj = obj_get_next(obj)
+                end
+            end
 
-          -- Delete all the children of the object
-          for _, child in ipairs(children) do
-              -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
-              child.activeFlags = 0
-              obj_mark_for_deletion(child)
-          end
+            -- Delete all the children of the object
+            for _, child in ipairs(children) do
+                -- child.parentObj = nil  -- breaks the link so behavior can't re-attach to Mario
+                child.activeFlags = 0
+                obj_mark_for_deletion(child)
+            end
 
-          -- Then delete the main object
-          foundObj.activeFlags = 0
-          obj_mark_for_deletion(foundObj)
+            -- Then delete the main object
+            foundObj.activeFlags = 0
+            obj_mark_for_deletion(foundObj)
         end
     -- Only if the host (who requested clearall) and the local player are in the same level
-    elseif packet.type == PACKET_DELALL and level == gNetworkPlayers[0].currLevelNum then
+    elseif packet.type == PACKET_DELALL and packet.level == gNetworkPlayers[0].currLevelNum then
         -- Delete all objects as well
         clearall(true)
+    elseif packet.type == PACKET_REQUESTID then
+        -- Assign unique ID on just connected player first spawn (different even
+        -- if same player disconnects and reconnects, never the same)
+        local newId
+        repeat
+            newId = math.random(0, 0xFFFFFFFF) -- 32-bit random
+        until not usedPlayerIds[newId]
+
+        usedPlayerIds[newId] = true
+
+        -- Send ONLY to this specific player
+        network_send_to(m.playerIndex, true, {
+            type = PACKET_ASSIGNID,
+            id = newId,
+        })
+
+        print("Assigned player ID " .. newId .. " to just connected player " .. m.playerIndex)
+    elseif packet.type == PACKET_ASSIGNID then
+        myPlayerId = packet.id
+        print("My new player id: " .. myPlayerId)
     end
 end)
 
@@ -1023,6 +1045,14 @@ function spawn_selected(m)
     if not inSubmenu then
         return
     end -- only spawn when inside a submenu
+
+    -- TODO: It wont work, this should be done outside here
+    -- Request new player id from host
+    if not myPlayerId then
+        network_send_to(0, true, {
+            type = PACKET_REQUESTID,
+        })
+    end
 
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1089,10 +1119,9 @@ function spawn_selected(m)
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
         end
 
-        o.oModPlayerId = gNetworkPlayers[0].globalIndex + 1
+        o.oModPlayerId = myPlayerId
         o.oModObjNum = next_object_id
         -- o.oModLvlNum = gNetworkPlayers[0].currLevelNum
-
     end)
 
     if o then
@@ -1189,7 +1218,7 @@ local function find_nearest_object(m)
         local obj = obj_get_first(list)
         while obj ~= nil do
             if obj ~= nearest and obj.parentObj == nearest then
-                print('found children')
+                print("found children")
                 table.insert(children, obj)
             end
             obj = obj_get_next(obj)
@@ -1464,13 +1493,13 @@ end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
 
 hook_event(HOOK_ON_OBJECT_LOAD, function(o)
-  if o.oModPlayerId and o.oModPlayerId > 0 then
-    network_init_object(o, true, {
-        "oModPlayerId",
-        "oModObjNum",
-        -- "oModLvlNum",
-    })
-  end
+    if o.oModPlayerId and o.oModPlayerId > 0 then
+        network_init_object(o, true, {
+            "oModPlayerId",
+            "oModObjNum",
+            -- "oModLvlNum",
+        })
+    end
 end)
 
 -- Used from the hook chat command and also on packet receive PACKET_DELALL
@@ -1517,15 +1546,23 @@ function clearall(can)
 end
 
 hook_chat_command("clearall", "Deleted all spawned objects on this map", function(unused)
-  clearall(true)
+    clearall(true)
 
-  -- Tell other Marios to also try to delete all spawned objects
-  network_send(true, {
-      type = PACKET_DELALL,
-      level = gNetworkPlayers[0].currLevelNum,
-  })
-  print("Sent packet: PACKET_DELOBJ")
+    -- Tell other Marios to also try to delete all spawned objects
+    network_send(true, {
+        type = PACKET_DELALL,
+        level = gNetworkPlayers[0].currLevelNum,
+    })
+    print("Sent packet: PACKET_DELOBJ")
 
-  return true
+    return true
 end)
 
+
+-- Host always have the id 1
+if network_is_server() then
+    myPlayerId = 1
+    usedPlayerIds[0] = true
+    usedPlayerIds[1] = true
+    print("My new player id: " .. myPlayerId)
+end
