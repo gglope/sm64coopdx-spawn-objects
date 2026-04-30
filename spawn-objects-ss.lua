@@ -1,5 +1,5 @@
--- name: Spawn Objects singlelevel (beta)
--- description: Spawn and delete, save and load (host only) (no persistence)
+-- name: Spawn Objects ss (beta)
+-- description: Spawn and delete, save and load (host only), no persistence
 --
 -- Sections:
 -- #RENDERMENU
@@ -11,17 +11,13 @@
 -- - (1) When an object id deleted and the player saves right after, that
 -- object might appears in the table because still fullt despawned. When you
 -- loadmap you can bump into an invisible object
--- TODO: - (2) If player uses /savemap while wooden logs are rotated, that pitch is
+-- - (2) If player uses /savemap while wooden logs are rotated, that pitch is
 -- saved in the file, and when map is loaded, the log will have that pitch
--- despite not rotating
+-- despite not rotating. This is not a problem, just info
 -- - (3) When spawning a tilted object while side jumping, the object will be
 -- spawned facing the wrong direction
 -- - Submarine center is at the right of visible object position, so a special
 -- function is needed for it or the model needs fixing in blender
-
--- DOC
--- spawnX, spawnY, spawnZ are relative values, while spawnPitch, spawnRoll and
--- spawnYaw are absolute values
 
 local vowels = {
     ["A"] = true,
@@ -1552,26 +1548,6 @@ hook_event(HOOK_ON_HUD_RENDER, function()
 end)
 
 hook_event(HOOK_MARIO_UPDATE, function(m)
-    -- m.health = 0x880   -- or 0x8FF; both are common "full health" values in SM64 Lua mods
-    -- m.health = 0xFFF
-
-    -- Invincibility timer (extra safety)
-    -- m.invincTimer = 60
-
-    -- Optional: instantly cancel any death action and put Mario back into idle
-    -- local deathActions = {
-    --     ACT_DEATH_ON_BACK, ACT_DEATH_ON_STOMACH, ACT_DEATH_PLUNGE,
-    --     ACT_QUICKSAND_DEATH, ACT_SUFFOCATION, ACT_WATER_DEATH,
-    --     ACT_DROWNING, ACT_ELECTROCUTION, ACT_BURNING_JUMP,
-    --     ACT_BURNING_FALL
-    -- }
-    -- for _, act in ipairs(deathActions) do
-    --     if m.action == act then
-    --         set_mario_action(m, ACT_IDLE, 0)
-    --         break
-    --     end
-    -- end
-
     -- cooldown for every player
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1590,44 +1566,6 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     end
     move_selection(m)
     spawn_selected(m)
-end)
-
--- hook_event(HOOK_ON_PLAYER_CONNECTED, function(m)
---   if m.playerIndex == 0 then
---     warp_to_level(TARGET_LEVEL, TARGET_AREA, TARGET_WARP)
---   end
--- end)
---
--- hook_event(HOOK_ON_LEVEL_INIT, function(type, levelNum, areaIdx, nodeId, arg)
---   if levelNum ~= TARGET_LEVEL then
---     warp_to_level(TARGET_LEVEL, TARGET_AREA, TARGET_WARP)
---   end
--- end)
--- hook_event(HOOK_ON_PLAYER_CONNECTED, function(m)
---   if m and m.playerIndex ~= nil then
---     m.numLives = 99
---   end
--- end)
-
-hook_event(HOOK_ON_PAUSE_EXIT, function(usedExitToCastle)
-    return false
-end)
-
--- Removes all doors
-hook_event(HOOK_ON_SYNC_VALID, function(type, levelNum, areaIdx, nodeId, arg)
-    for _, list in ipairs(lists) do
-        local obj = obj_get_first(list)
-        while obj ~= nil do
-            if
-                obj.oInteractType == INTERACT_DOOR
-                or obj.oInteractType == INTERACT_WARP
-                or obj.oInteractType == INTERACT_WARP_DOOR
-            then
-                obj_mark_for_deletion(obj)
-            end
-            obj = obj_get_next(obj)
-        end
-    end
 end)
 
 -- Gives ferris wheel the blue platform instead of error model
