@@ -21,8 +21,6 @@ The versions can be identified by the letters in the script name:
 
 # Bugs
 
-- Desync problems when nearest object to delete is a composite object, and during /clearall
-
 # Settings and commands
 
 ## Commands

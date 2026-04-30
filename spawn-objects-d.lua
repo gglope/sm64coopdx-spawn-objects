@@ -24,7 +24,7 @@ local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
 local TARGET_AREA = 1
 local TARGET_WARP = 0
 local PACKET_DELOBJ = 0
-local PACKET_DELOBJS = 1
+local PACKET_DELALL = 1
 local next_object_id = 1 -- id of tracked objects
 
 -- List of object lists
@@ -1009,20 +1009,11 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
           foundObj.activeFlags = 0
           obj_mark_for_deletion(foundObj)
         end
-
+    -- Only if the host (who requested clearall) and the local player are in the same level
+    elseif packet.type == PACKET_DELALL and level == gNetworkPlayers[0].currLevelNum then
+        -- Delete all objects as well
+        clearall(true)
     end
-    -- elseif packet.type == PACKET_DELOBJS then
-    --     local list = tracked_objects[level]
-    --     print("PACKET_DELOBJS")
-    --     if list then
-    --         for i = #list, 1, -1 do
-    --             if list[i].oModPlayerId == packet.oModPlayerId and list[i].oModObjNum == packet.oModObjNum then
-    --                 table.remove(list, i)
-    --                 break -- one object only
-    --             end
-    --         end
-    --     end
-    -- end
 end)
 
 function spawn_selected(m)
@@ -1270,49 +1261,6 @@ local function handle_object_deletion(m)
     data.deletionCooldown = COOLDOWN_FRAMES_DEL
 end
 
-hook_chat_command("clearall", "Deletes all objects on this map spawned using the mod", function(unused)
-    if not network_is_server() then
-        -- if gMarioStates[0].playerIndex == 0 then
-        --   djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
-        -- end
-        djui_popup_create("\\#ff4444\\Only the host can clear all objects!", 2)
-        return true
-    end
-
-    -- There are desync problems with rotating block with flames and ferris wheel
-    local parents = {}
-    local children = {}
-    for _, list in ipairs(lists) do
-        local obj = obj_get_first(list)
-        while obj ~= nil do
-            if obj.oModSpawnedFlag == 1 then
-                table.insert(parents, obj)
-            elseif obj.parentObj and obj.parentObj.oModSpawnedFlag == 1 then
-                table.insert(children, obj)
-            end
-            obj = obj_get_next(obj)
-        end
-    end
-
-    -- Delete children first
-    for _, obj in ipairs(children) do
-        obj.oModSpawnedFlag = 0
-        obj.activeFlags = 0
-        obj_mark_for_deletion(obj)
-    end
-
-    -- Then delete parents
-    for _, obj in ipairs(parents) do
-        obj.oModSpawnedFlag = 0
-        obj.activeFlags = 0
-        obj_mark_for_deletion(obj)
-    end
-
-    djui_popup_create("\\#44ff44\\All spawned objects deleted!", 2)
-
-    return true
-end)
-
 -- respawn
 hook_chat_command("respawn", "Respawn if you get stuck", function(msg)
     -- local m = gMarioStates[0]
@@ -1518,5 +1466,61 @@ hook_event(HOOK_ON_OBJECT_LOAD, function(o)
         -- "oModLvlNum",
     })
   end
+end)
+
+-- Used from the hook chat command and also on packet receive PACKET_DELALL
+function clearall(can)
+    if not can and not network_is_server() then
+        -- if gMarioStates[0].playerIndex == 0 then
+        --   djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
+        -- end
+        djui_popup_create("\\#ff4444\\Only the host can clear all objects!", 2)
+        return true
+    end
+
+    local parents = {}
+    local children = {}
+    for _, list in ipairs(lists) do
+        local obj = obj_get_first(list)
+        while obj ~= nil do
+            if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+                table.insert(parents, obj)
+            elseif obj.parentObj and obj.parentObj.oModPlayerId > 0 and obj.parentObj.oModObjNum > 0 then
+                table.insert(children, obj)
+            end
+            obj = obj_get_next(obj)
+        end
+    end
+
+    -- Delete children first
+    for _, obj in ipairs(children) do
+        obj.activeFlags = 0
+        obj_mark_for_deletion(obj)
+    end
+
+    -- Then delete parents
+    for _, obj in ipairs(parents) do
+        -- obj.oModPlayerId = 0
+        -- obj.oModObjNum = 0
+        obj.activeFlags = 0
+        obj_mark_for_deletion(obj)
+    end
+
+    djui_popup_create("\\#44ff44\\All spawned objects deleted!", 2)
+
+    return true
+end
+
+hook_chat_command("clearall", "Deleted all spawned objects on this map", function(unused)
+  clearall(true)
+
+  -- Tell other Marios to also try to delete all spawned objects
+  network_send(true, {
+      type = PACKET_DELALL,
+      level = gNetworkPlayers[0].currLevelNum,
+  })
+  print("Sent packet: PACKET_DELOBJ")
+
+  return true
 end)
 
