@@ -1136,27 +1136,32 @@ local function find_nearest_object(m)
                 end
             end
 
-            -- -- ACT_TALKING does not solve problems with conversations
-            -- -- Not allowed to delete the object Mario is interacting with (Shells, Poles, Trees etc.)
-            -- -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
-            -- local isInteracting = false
-            -- if not isMarioObj and not isDoor then
-            --     if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
-            --         isInteracting = true
-            --     elseif
-            --         (obj == m.interactObj or obj == m.usedObj)
-            --         and (
-            --             (m.action & ACT_FLAG_ON_POLE) ~= 0
-            --             or (m.action & ACT_FLAG_HANGING) ~= 0
-            --             or m.action == ACT_READING_NPC_DIALOG
-            --             or m.action == ACT_WAITING_FOR_DIALOG
-            --             or m.action == ACT_READING_AUTOMATIC_DIALOG
-            --             or m.action == ACT_READING_SIGN
-            --         )
-            --     then
-            --         isInteracting = true
-            --     end
-            -- end
+            -- TODO: Test this code. Is it too heavy?
+            ---- -- ACT_TALKING does not solve problems with conversations
+            ---- -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
+            --if not isMarioObj and not isDoor then
+            --  local isInteracting = false
+            --  for i = 0, MAX_PLAYERS - 1 do
+            --      local np = gNetworkPlayers[i]
+            --      if np and np.connected then
+            --          local m = gMarioStates[i]
+            --          if m then
+            --            if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
+            --                isInteracting = true
+            --            elseif (obj == m.interactObj or obj == m.usedObj) and (
+            --                    (m.action & ACT_FLAG_ON_POLE) ~= 0
+            --                    or (m.action & ACT_FLAG_HANGING) ~= 0
+            --                    or m.action == ACT_READING_NPC_DIALOG
+            --                    or m.action == ACT_WAITING_FOR_DIALOG
+            --                    or m.action == ACT_READING_AUTOMATIC_DIALOG
+            --                    or m.action == ACT_READING_SIGN
+            --                ) then
+            --                isInteracting = true
+            --            end
+            --          end
+            --      end
+            --  end
+            --end
 
             -- if not isMarioObj and not isDoor and not isInteracting then
             if not isMarioObj and not isDoor and isDeletable then
