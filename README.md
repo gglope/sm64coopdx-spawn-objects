@@ -42,7 +42,7 @@ Available to anyone:
 
 - Spawn Objects Upright:
   - default: true
-  - If enabled, objects will be tilted based on mario face angle. For example, if you spawn a Sinking platform while diving, the platform will be spawned inclined
+  - If disabled, objects will be tilted based on mario face angle. For example, if you spawn a Sinking platform while diving, the platform will be spawned inclined
 
 Available to host only:
 
