@@ -17,10 +17,8 @@ local vowels = {
 }
 
 -- Parameters
--- local COOLDOWN_FRAMES = 10
 local COOLDOWN_FRAMES = 40
--- local COOLDOWN_FRAMES = 80
-local COOLDOWN_FRAMES_DEL = 10
+local COOLDOWN_FRAMES_DEL = 20
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
 
 -- Packets type. Will be used to update the table of tracked objects on every client
@@ -1130,7 +1128,7 @@ function spawn_selected(m)
 
     -- Register to-be-spawned object into the tracking table
     track_object(
-        gNetworkPlayers[0].globalIndex + 1, -- oModPlayerId
+        gPlayerSyncTable[0].myPlayerId, -- oModPlayerId
         next_object_id, -- oModObjNum
         gNetworkPlayers[0].currLevelNum,
         obj.behavior,
@@ -1177,6 +1175,8 @@ function spawn_selected(m)
 
         o.oModPlayerId = gPlayerSyncTable[0].myPlayerId
         o.oModObjNum = next_object_id
+        -- print('oModPlayerId: ' .. gPlayerSyncTable[0].myPlayerId)
+        -- print('oModObjNum: ' .. next_object_id)
         -- o.oModLvlNum = gNetworkPlayers[0].currLevelNum
     end)
 
