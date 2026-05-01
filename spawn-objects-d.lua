@@ -1,8 +1,8 @@
 -- name: Spawn Objects D (beta testing)
 -- description: Spawn and delete objects
 --
--- TODO: oModPlayerId should not be the one of max 16 (the player count), but
--- an unique identifier for all players who enter, or an incremental number
+-- - Submarine center is at the right of visible object position, so a special
+-- function is needed for it or the model needs fixing in blender
 
 local vowels = {
     ["A"] = true,
@@ -969,7 +969,7 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
                 if obj and obj.oModPlayerId == packet.oModPlayerId and obj.oModObjNum == packet.oModObjNum then
                     found = true
                     foundObj = obj
-                    print("Requested object deletion")
+                    print("Requested object to delete FOUND")
                     -- print("oModPlayerId: " .. obj.oModPlayerId)
                     -- print("oModObjNum: " .. obj.oModObjNum)
                 end
@@ -980,6 +980,15 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
                 break
             end
         end
+
+
+        -- Why not use one loop to find both the object and the children given
+        -- that i have informations on the main object? Because AFAIK sm64
+        -- often does obj.parentObj = obj . Until the main object is not found,
+        -- foundObj = nil , so in the children `if` condition we can't do `obj
+        -- ~= foundObj`, and we would risk detecting the same object more than
+        -- once. We could add `if obj.parentObj ~= obj`, but i don't want to
+        -- risk that some object acts differently (for now)
 
         -- Find all the children of the object to delete
         if foundObj ~= nil then
@@ -1488,9 +1497,12 @@ function clearall(can)
     for _, list in ipairs(lists) do
         local obj = obj_get_first(list)
         while obj ~= nil do
+            -- only parents have the ids
             if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
                 table.insert(parents, obj)
-            elseif obj.parentObj and obj.parentObj.oModPlayerId > 0 and obj.parentObj.oModObjNum > 0 then
+            -- elseif obj.parentObj and obj.parentObj.oModPlayerId > 0 and obj.parentObj.oModObjNum > 0 then
+            elseif obj.parentObj and obj.parentObj ~= obj and
+              obj.parentObj.oModPlayerId > 0 and obj.parentObj.oModObjNum > 0 then
                 table.insert(children, obj)
             end
             obj = obj_get_next(obj)

@@ -63,9 +63,12 @@ stylua --indent-type Spaces --indent-width 4 --line-endings Unix spawn-objects-s
 
 General:
 
+- It seems that if an object does not have a father, then `obj.parentObj == obj` (same pointer)
+- While `spawn_sync_object` spawns an object for everyone, the function to delete it `obj_mark_for_deletion` works for everyone only on a subset of objects
+- `network_init_object` in the init function of `spawn_sync_object` can cause desync and weird stuff
 - gGlobalSyncTable are not good to track the objects
 
-What is the problem with tracking objects (i guess race conditions):
+What is the problem with tracking objects:
 
 - If an object despaws by itself (for example a shell gets used, or a wing cap hits the despawn timer) the object would still be in the tracking table?
 - I thought of using hooks everytime an object loads or unloads (this solution can possibily even avoid using `network_send`), so we are sure that even thought an object autodespawn by itself the deletion is tracked in the users tables
@@ -74,5 +77,5 @@ What is the problem with tracking objects (i guess race conditions):
 
 Other:
 
-- One can choose to keep the table of objects only on the host device, but this means that everytime a player enters a level visited before, the host would be forced to send the entire list of objects on that level to the player who is entering it in order for the him to restore the objects
+- One can choose to keep the table of objects only on the host device, but this means that everytime a player enters a level visited before, the host would be forced to send the entire list of objects on that level to the player who is entering it, in order for him to restore the objects
 

@@ -19,10 +19,6 @@
 -- - Submarine center is at the right of visible object position, so a special
 -- function is needed for it or the model needs fixing in blender
 
--- DOC
--- spawnX, spawnY, spawnZ are relative values, while spawnPitch, spawnRoll and
--- spawnYaw are absolute values
-
 local vowels = {
     ["A"] = true,
     ["E"] = true,
@@ -31,16 +27,19 @@ local vowels = {
     ["U"] = true,
 }
 
+-- Parameters
 -- local COOLDOWN_FRAMES = 10
-local COOLDOWN_FRAMES = 80
+local COOLDOWN_FRAMES = 40
+-- local COOLDOWN_FRAMES = 80
 local COOLDOWN_FRAMES_DEL = 10
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
 
 -- Packets type. Will be used to update the table of tracked objects on every client
-local PACKET_ADD_OBJECT = 0
-local PACKET_DELETE_OBJECT = 1
-local tracked_objects = {}
+local PACKET_DELOBJ = 0
+local PACKET_DELALL = 1
+local usedPlayerIds = {}
 local next_object_id = 1 -- id of tracked objects
+local tracked_objects = {}
 local isClearingLevel = false
 
 -- List of object lists
@@ -60,7 +59,7 @@ local lists = {
 define_custom_obj_fields({
     oModPlayerId = "u32",
     oModObjNum = "u32",
-    oModLvlNum = "u32",
+    -- oModLvlNum = "u32",
 })
 
 -- Menu: allow guest object deletion
