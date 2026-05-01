@@ -1,4 +1,4 @@
--- name: Spawn Objects test (beta testing)
+-- name: Spawn Objects D (beta testing)
 -- description: Spawn and delete objects
 --
 -- - Submarine center is at the right of visible object position, so a special
