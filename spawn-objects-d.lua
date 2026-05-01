@@ -13,7 +13,8 @@ local vowels = {
 }
 
 -- Parameters
-local COOLDOWN_FRAMES = 10
+-- local COOLDOWN_FRAMES = 10
+local COOLDOWN_FRAMES = 40
 -- local COOLDOWN_FRAMES = 80
 local COOLDOWN_FRAMES_DEL = 10
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
@@ -25,10 +26,7 @@ local TARGET_AREA = 1
 local TARGET_WARP = 0
 local PACKET_DELOBJ = 0
 local PACKET_DELALL = 1
-local PACKET_ASSIGNID = 2
-local PACKET_REQUESTID = 3
 local usedPlayerIds = {}
-local myPlayerId
 local next_object_id = 1 -- id of tracked objects
 
 -- List of object lists
@@ -968,13 +966,12 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
         for _, list in ipairs(lists) do
             local obj = obj_get_first(list)
             while obj ~= nil and found == false do
-                print("oModPlayerId: " .. packet.oModPlayerId)
-                print("oModObjNum: " .. packet.oModObjNum)
-
                 if obj and obj.oModPlayerId == packet.oModPlayerId and obj.oModObjNum == packet.oModObjNum then
                     found = true
                     foundObj = obj
-                    print("Found true")
+                    print("Requested object deletion")
+                    -- print("oModPlayerId: " .. obj.oModPlayerId)
+                    -- print("oModObjNum: " .. obj.oModObjNum)
                 end
                 obj = obj_get_next(obj)
             end
@@ -992,7 +989,7 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
                 local obj = obj_get_first(list)
                 while obj ~= nil do
                     if obj and obj ~= foundObj and obj.parentObj == foundObj then
-                        print("Found children " .. idx)
+                        -- print("Found children " .. idx)
                         idx = idx + 1
                         table.insert(children, obj)
                     end
@@ -1015,26 +1012,6 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
     elseif packet.type == PACKET_DELALL and packet.level == gNetworkPlayers[0].currLevelNum then
         -- Delete all objects as well
         clearall(true)
-    elseif packet.type == PACKET_REQUESTID then
-        -- Assign unique ID on just connected player first spawn (different even
-        -- if same player disconnects and reconnects, never the same)
-        local newId
-        repeat
-            newId = math.random(0, 0xFFFFFFFF) -- 32-bit random
-        until not usedPlayerIds[newId]
-
-        usedPlayerIds[newId] = true
-
-        -- Send ONLY to this specific player
-        network_send_to(m.playerIndex, true, {
-            type = PACKET_ASSIGNID,
-            id = newId,
-        })
-
-        print("Assigned player ID " .. newId .. " to just connected player " .. m.playerIndex)
-    elseif packet.type == PACKET_ASSIGNID then
-        myPlayerId = packet.id
-        print("My new player id: " .. myPlayerId)
     end
 end)
 
@@ -1045,14 +1022,6 @@ function spawn_selected(m)
     if not inSubmenu then
         return
     end -- only spawn when inside a submenu
-
-    -- TODO: It wont work, this should be done outside here
-    -- Request new player id from host
-    if not myPlayerId then
-        network_send_to(0, true, {
-            type = PACKET_REQUESTID,
-        })
-    end
 
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1119,8 +1088,10 @@ function spawn_selected(m)
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
         end
 
-        o.oModPlayerId = myPlayerId
+        o.oModPlayerId = gPlayerSyncTable[0].myPlayerId
         o.oModObjNum = next_object_id
+        -- print('oModPlayerId: ' .. gPlayerSyncTable[0].myPlayerId)
+        -- print('oModObjNum: ' .. next_object_id)
         -- o.oModLvlNum = gNetworkPlayers[0].currLevelNum
     end)
 
@@ -1218,7 +1189,7 @@ local function find_nearest_object(m)
         local obj = obj_get_first(list)
         while obj ~= nil do
             if obj ~= nearest and obj.parentObj == nearest then
-                print("found children")
+                -- print("found children")
                 table.insert(children, obj)
             end
             obj = obj_get_next(obj)
@@ -1553,16 +1524,35 @@ hook_chat_command("clearall", "Deleted all spawned objects on this map", functio
         type = PACKET_DELALL,
         level = gNetworkPlayers[0].currLevelNum,
     })
-    print("Sent packet: PACKET_DELOBJ")
+    print("Sent packet: PACKET_DELALL")
 
     return true
 end)
 
+hook_event(HOOK_ON_PLAYER_CONNECTED, function(m)
+    -- Assign unique ID every a player connects. It changes even if same player
+    -- disconnects and the reconnects
+    if network_is_server() and m.playerIndex ~= 0 then
+        local newId
+        repeat
+            newId = math.random(0, 0xFFFFFFFF) -- 32-bit random
+        until not usedPlayerIds[newId]
 
--- Host always have the id 1
+        usedPlayerIds[newId] = true
+        gPlayerSyncTable[m.playerIndex].myPlayerId = newId
+
+        print("Assigned player ID " .. newId .. " to just connected player " .. m.playerIndex)
+    end
+end)
+-- hook_event(HOOK_JOINED_GAME, function(m)
+-- end)
+
+-- Host always has the id 1
 if network_is_server() then
-    myPlayerId = 1
+    -- myPlayerId = 1
+    gPlayerSyncTable[0].myPlayerId = 1
     usedPlayerIds[0] = true
     usedPlayerIds[1] = true
-    print("My new player id: " .. myPlayerId)
+    print("Host player id: " .. gPlayerSyncTable[0].myPlayerId)
 end
+

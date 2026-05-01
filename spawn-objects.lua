@@ -10,7 +10,8 @@ local vowels = {
 }
 
 -- Parameters
-local COOLDOWN_FRAMES = 10
+-- local COOLDOWN_FRAMES = 10
+local COOLDOWN_FRAMES = 40
 -- local COOLDOWN_FRAMES = 80
 local COOLDOWN_FRAMES_DEL = 10
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
