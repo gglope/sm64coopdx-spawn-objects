@@ -2,7 +2,7 @@
 
 THIS MOD IS STILL IN DEVELOPMENT.
 
-Spawn objects from a categorized menu and delete nearest object. Dending on the script version more functions are available (for example save and persistence).
+Spawn objects from a categorized menu and delete nearest object. Depending on the script version more functions are available (for example save and persistence).
 
 # Which one to choose
 
