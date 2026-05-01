@@ -26,7 +26,6 @@ local PACKET_DELOBJ = 0
 local PACKET_DELALL = 1
 local usedPlayerIds = {}
 local next_object_id = 1 -- id of tracked objects
-local welcomeTimer = 0
 
 -- List of object lists
 local lists = {
@@ -1293,52 +1292,6 @@ hook_event(HOOK_ON_HUD_RENDER, function()
         return
     end
 
-        -- === WELCOME / INFO WINDOW (10 seconds on connect) ===
-    if welcomeTimer > 0 then
-        djui_hud_set_resolution(RESOLUTION_DJUI)
-
-        local screenW = djui_hud_get_screen_width()
-        local screenH = djui_hud_get_screen_height()
-
-        -- Background (black with transparency, same style as your menu)
-        djui_hud_set_color(0, 0, 0, 215)
-        local w = 780
-        local h = 420
-        local x = (screenW - w) / 2
-        local y = (screenH - h) / 2 - 40
-        djui_hud_render_rect(x, y, w, h)
-
-        -- Nice colored border (optional but looks great)
-        djui_hud_set_color(255, 140, 0, 180)
-        djui_hud_render_rect(x, y, w, h)
-
-        -- Title
-        djui_hud_set_color(255, 200, 60, 255)
-        djui_hud_print_text("SERVER INFO", x + 140, y + 45, 2.8)
-
-        -- Info text (edit these lines however you want!)
-        djui_hud_set_color(255, 255, 255, 255)
-        local lineY = y + 130
-        local spacing = 38
-
-        djui_hud_print_text("THIS MOD DOES NOT HAVE PERSISTENCE.", x + 70, lineY, 1.4)
-        lineY = lineY + spacing
-        djui_hud_print_text("IF ALL PLAYERS LEAVE A LEVEL, ALL OBJECTS", x + 70, lineY, 1.4)
-        lineY = lineY + spacing
-        djui_hud_print_text("WILL BE DESPAWNED AND LOST", x + 70, lineY, 1.4)
-        -- djui_hud_print_text("- Object Spawner menu is active", x + 70, lineY, 1.4)
-        -- lineY = lineY + spacing
-        -- djui_hud_print_text("- D-Pad L/R = navigate   X = spawn", x + 70, lineY, 1.4)
-        -- lineY = lineY + spacing
-        -- djui_hud_print_text("- Y = delete nearest object", x + 70, lineY, 1.4)
-        -- lineY = lineY + spacing
-        -- djui_hud_print_text("- Have fun and play nice!", x + 70, lineY, 1.4)
-
-        -- Optional small timer at the bottom
-        djui_hud_set_color(180, 180, 180, 160)
-        djui_hud_print_text("Auto-closes in " .. math.ceil(welcomeTimer / 30), x + 220, y + h - 55, 0.95)
-    end
-
     -- #RENDERMENU --
     -- This moves the entire menu up or down
     local offsetY = 70
@@ -1484,9 +1437,6 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     if data.deletionCooldown > 0 then
         data.deletionCooldown = data.deletionCooldown - 1
     end
-    if welcomeTimer > 0 then
-        welcomeTimer = welcomeTimer - 1
-    end
 
     -- only local player (index 0) controls the spawn menu
     if m.playerIndex ~= 0 then
@@ -1592,10 +1542,6 @@ end)
 hook_event(HOOK_ON_PLAYER_CONNECTED, function(m)
     -- Assign unique ID every a player connects. It changes even if same player
     -- disconnects and the reconnects
-    if m.playerIndex == 0 then
-        welcomeTimer = 3000  -- 10 seconds
-    end
-
     if network_is_server() and m.playerIndex ~= 0 then
         local newId
         repeat
