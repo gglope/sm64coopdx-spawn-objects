@@ -52,6 +52,7 @@ Available to host only:
 # CREDITS
 
 - [Beard's Mod](https://mods.sm64coopdx.com/mods/beards-mod.181/)
+- [sm64coopdx forum](https://mods.sm64coopdx.com/forums/)
 
 # Useful info about developing
 
