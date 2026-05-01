@@ -1,4 +1,4 @@
--- name: Spawn Objects D (beta)
+-- name: Spawn Objects D (beta testing)
 -- description: Spawn and delete objects
 --
 -- TODO: oModPlayerId should not be the one of max 16 (the player count), but

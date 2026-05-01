@@ -9,7 +9,7 @@ Spawn objects from a categorized menu and delete nearest object. Dending on the 
 Scripts that (almost) work (all others do not work):
 
 - spawn-objects.lua
-- ~~spawn-objects-d.lua~~
+- spawn-objects-d.lua
 
 The versions can be identified by the letters in the script name:
 
