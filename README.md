@@ -31,6 +31,7 @@ The versions can be identified by the letters in the script name:
 - D-PAD RIGHT in submenu: go to next submenu
 - X: spawn
 - Y: delete nearest object
+- /respawn to respawn when Mario gets stuck for any reason
 - /savemap to save all the spawned objects from every player
 - /loadmap (host only) to load saved map
 - /clearall (host only) delete all mod spawned objects
