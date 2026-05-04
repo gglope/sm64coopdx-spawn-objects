@@ -921,26 +921,42 @@ function move_selection(m)
             play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
             return
         else
-            -- next category while in submenu
-            selectedCategory = selectedCategory + 1
-            if selectedCategory > #categories then
-                selectedCategory = 1
-            end
-            if not selectedObjectInCat[selectedCategory] then
-                selectedObjectInCat[selectedCategory] = 1
-            end
+            -- This commmented code is for submenu change on DRAD right press.
+            -- I prefer to advance 5 elements instead
+            -- -- next category while in submenu
+            -- selectedCategory = selectedCategory + 1
+            -- if selectedCategory > #categories then
+            --     selectedCategory = 1
+            -- end
+            -- if not selectedObjectInCat[selectedCategory] then
+            --     selectedObjectInCat[selectedCategory] = 1
+            -- end
+            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 5
         end
     else
         return
     end
 
     -- clamp values
+    -- if inSubmenu then
+    --     local items = categories[selectedCategory].items
+    --     selectedObjectInCat[selectedCategory] =
+    --         math.max(1, math.min(selectedObjectInCat[selectedCategory] or 1, #items))
+    -- else
+    --     selectedCategory = math.max(1, math.min(selectedCategory, #categories))
+    -- end
     if inSubmenu then
         local items = categories[selectedCategory].items
-        selectedObjectInCat[selectedCategory] =
-            math.max(1, math.min(selectedObjectInCat[selectedCategory] or 1, #items))
+        local numItems = #items
+        if numItems > 0 then
+            local sel = selectedObjectInCat[selectedCategory] or 1
+            selectedObjectInCat[selectedCategory] = ((sel - 1) % numItems) + 1
+        end
     else
-        selectedCategory = math.max(1, math.min(selectedCategory, #categories))
+        local numCats = #categories
+        if numCats > 0 then
+            selectedCategory = ((selectedCategory - 1) % numCats) + 1
+        end
     end
 
     play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
