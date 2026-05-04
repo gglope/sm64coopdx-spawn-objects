@@ -1,16 +1,13 @@
 -- name: Spawn Objects (beta)
 -- description: Spawn objects
-
-local vowels = {
-    ["A"] = true,
-    ["E"] = true,
-    ["I"] = true,
-    ["O"] = true,
-    ["U"] = true,
-}
+--
+-- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
+-- the one already spawned with the map
+-- - Submarine center is at the right of visible object position, so a special
+-- function is needed for it or the model needs fixing in blender
 
 -- Parameters
-local COOLDOWN_FRAMES = 40
+local COOLDOWN_FRAMES = 50
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
 
 -- local TARGET_LEVEL = LEVEL_BOB
@@ -18,6 +15,8 @@ local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on
 local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
 local TARGET_AREA = 1
 local TARGET_WARP = 0
+local recentObjs = {}
+local MAX_RECENT = 30
 
 -- Menu: spawn objects always upright?
 local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or true
@@ -29,6 +28,10 @@ hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightTo
 
 -- Menu categories and subcategories
 local categories = {
+    {
+      name = "Recent",
+      items = recentObjs,
+    },
     {
         name = "Powerups",
         items = {
@@ -446,7 +449,7 @@ local categories = {
                 behavior = id_bhvTTCRotatingSolid,
                 model = E_MODEL_TTC_ROTATING_CUBE,
                 name = "Rotating Cube",
-                spawnYOffset = -80,
+                spawnYOffset = 0,
             },
             {
                 behavior = id_bhvPushableMetalBox,
@@ -457,12 +460,12 @@ local categories = {
             },
             { behavior = id_bhvBreakableBox, model = E_MODEL_ERROR_MODEL, name = "ERROR" },
             { name = "Breakable box small", behavior = id_bhvBreakableBoxSmall, model = E_MODEL_BREAKABLE_BOX_SMALL },
-            { name = "JRB floating box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbFloatingBox },
+            { name = "JRB floating box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbFloatingBox, spawnYOffset = 100 },
             {
                 name = "Staircase step",
                 model = E_MODEL_BBH_STAIRCASE_STEP,
                 behavior = id_bhvHiddenStaircaseStep,
-                spawnYOffset = -300,
+                spawnYOffset = -350,
             },
             {
                 name = "Water level pillar",
@@ -607,11 +610,12 @@ local categories = {
             { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby },
             { behavior = id_bhvUkiki, model = E_MODEL_UKIKI, name = "Monkey" },
             { name = "Monkey Macro", model = E_MODEL_UKIKI, behavior = id_bhvMacroUkiki },
+            -- Commented because this is already part of "Sinking cage platform"
             -- { behavior = id_bhvDDDPole, model = E_MODEL_DDD_POLE, name = "DDD pole" },
-            { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
+            -- { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
             { name = "Blue coin switch", behavior = id_bhvBlueCoinSwitch, model = E_MODEL_BLUE_COIN_SWITCH },
             -- {name = "Bowser key", behavior = id_bhvBowserKey, model = E_MODEL_BOWSER_KEY},
-            { name = "Chain chomp gate", behavior = id_bhvChainChompGate, model = E_MODEL_BOB_CHAIN_CHOMP_GATE },
+            { name = "Chain chomp gate", behavior = id_bhvChainChompGate, model = E_MODEL_BOB_CHAIN_CHOMP_GATE, spawnOffset = 300, spawnYaw = 32768},
             -- Questo sotto può essere interessante
             { name = "Holdable object (test)", behavior = id_bhvBetaHoldableObject, model = E_MODEL_BULLY },
             {
@@ -664,7 +668,7 @@ local categories = {
             {
                 behavior = id_bhvTtmRollingLog,
                 model = E_MODEL_TTM_ROLLING_LOG,
-                name = "Log",
+                name = "Log TTM",
                 spawnOffset = -100,
                 spawnYOffset = -1100,
                 spawnRoll = 16384,
@@ -711,7 +715,8 @@ local categories = {
             { name = "Bobomb buddy", behavior = id_bhvBobombBuddy, model = E_MODEL_BOBOMB_BUDDY },
             { name = "Bobomb opens cannon", behavior = id_bhvBobombBuddyOpensCannon, model = E_MODEL_BOBOMB_BUDDY },
             { name = "Blue fish", behavior = id_bhvBlueFish, model = E_MODEL_FISH },
-            { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
+            -- Commented because it just flies outside of the map
+            -- { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
             { name = "Castle flag", behavior = id_bhvCastleFlagWaving, model = E_MODEL_CASTLE_GROUNDS_FLAG },
             -- {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
             -- {name = "Fish group", model = E_MODEL_FISH, behavior = id_bhvFishGroup},
@@ -813,10 +818,10 @@ local categories = {
     --     }
     -- },
     {
-        name = "Needs fixing",
+        name = "Bugged",
         items = {
             {
-                name = "WDW rotating platform (bugged)",
+                name = "WDW rotating platform",
                 model = E_MODEL_WDW_ROTATING_PLATFORM,
                 behavior = id_bhvRotatingPlatform,
             },
@@ -886,26 +891,42 @@ function move_selection(m)
             play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
             return
         else
-            -- next category while in submenu
-            selectedCategory = selectedCategory + 1
-            if selectedCategory > #categories then
-                selectedCategory = 1
-            end
-            if not selectedObjectInCat[selectedCategory] then
-                selectedObjectInCat[selectedCategory] = 1
-            end
+            -- This commmented code is for submenu change on DRAD right press.
+            -- I prefer to advance 5 elements instead
+            -- -- next category while in submenu
+            -- selectedCategory = selectedCategory + 1
+            -- if selectedCategory > #categories then
+            --     selectedCategory = 1
+            -- end
+            -- if not selectedObjectInCat[selectedCategory] then
+            --     selectedObjectInCat[selectedCategory] = 1
+            -- end
+            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 5
         end
     else
         return
     end
 
     -- clamp values
+    -- if inSubmenu then
+    --     local items = categories[selectedCategory].items
+    --     selectedObjectInCat[selectedCategory] =
+    --         math.max(1, math.min(selectedObjectInCat[selectedCategory] or 1, #items))
+    -- else
+    --     selectedCategory = math.max(1, math.min(selectedCategory, #categories))
+    -- end
     if inSubmenu then
         local items = categories[selectedCategory].items
-        selectedObjectInCat[selectedCategory] =
-            math.max(1, math.min(selectedObjectInCat[selectedCategory] or 1, #items))
+        local numItems = #items
+        if numItems > 0 then
+            local sel = selectedObjectInCat[selectedCategory] or 1
+            selectedObjectInCat[selectedCategory] = ((sel - 1) % numItems) + 1
+        end
     else
-        selectedCategory = math.max(1, math.min(selectedCategory, #categories))
+        local numCats = #categories
+        if numCats > 0 then
+            selectedCategory = ((selectedCategory - 1) % numCats) + 1
+        end
     end
 
     play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
@@ -985,6 +1006,25 @@ function spawn_selected(m)
         end
 
     end)
+
+    if o then
+        -- This section adds spawned object to the recent section
+        -- This for is for removing duplicates
+        for i = #recentObjs, 1, -1 do
+          if recentObjs[i] == obj then
+              table.remove(recentObjs, i)
+              break
+          end
+        end
+
+        -- Insert just spawned object in Recent section
+        table.insert(recentObjs, 1, obj)
+
+        -- No more than MAX_RECENT objects in the Recent section
+        if #recentObjs > MAX_RECENT then
+          table.remove(recentObjs)
+        end
+    end
 
     data.cooldown = COOLDOWN_FRAMES
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
@@ -1158,3 +1198,38 @@ local function fix_wooden_post(obj)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
 
+-- Fix sinking cage platform's invisible DDD pole
+local function fix_ddd_pole(obj)
+    obj_set_model_extended(obj, E_MODEL_DDD_POLE)
+    -- obj_set_model_extended(obj, E_MODEL_BITS_BLUE_PLATFORM)
+end
+-- hook_behavior(id_bhvDDDPole, OBJ_LIST_POLELIKE, false, fix_ddd_pole, nil)
+hook_behavior(id_bhvDddMovingPole, OBJ_LIST_POLELIKE, false, fix_ddd_pole, nil)  -- just in case both variants exist
+
+-- Fix Cloud
+local function fix_cloud(obj)
+    obj_set_model_extended(obj, E_MODEL_MIST)
+end
+-- hook_behavior(id_bhvCloud, OBJ_LIST_DEFAULT, false, fix_cloud, nil)
+hook_behavior(id_bhvCloudPart, OBJ_LIST_DEFAULT, false, fix_cloud, nil)
+
+-- Fix Pokey
+-- local function fix_pokey_head(obj)
+--     obj_set_model_extended(obj, E_MODEL_POKEY_HEAD)
+-- end
+local function fix_pokey_body_part(obj)
+    obj_set_model_extended(obj, E_MODEL_POKEY_BODY_PART)
+end
+-- hook_behavior(id_bhvPokey, OBJ_LIST_GENACTOR, false, fix_pokey_head, nil)
+-- hook_behavior(id_bhvPokey, OBJ_LIST_DEFAULT,  false, fix_pokey_head, nil)
+hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_GENACTOR, false, fix_pokey_body_part, nil)
+-- hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_DEFAULT,  false, fix_pokey_body_part, nil)
+
+-- Not working
+-- -- Fix tumbling bridge pieces
+-- local function fix_tumbling_bridge(obj)
+--     -- obj_set_model_extended(obj, E_MODEL_BITFS_TUMBLING_PLATFORM)
+--     obj_set_model_extended(obj, E_MODEL_BITFS_TUMBLING_PLATFORM_PART)
+--     obj.oFlags = obj.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+-- end
+-- hook_behavior(id_bhvTumblingBridgePlatform, OBJ_LIST_SURFACE, false, fix_tumbling_bridge, nil)

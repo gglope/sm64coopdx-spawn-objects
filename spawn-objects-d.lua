@@ -20,6 +20,8 @@ local PACKET_DELOBJ = 0
 local PACKET_DELALL = 1
 local usedPlayerIds = {}
 local next_object_id = 1 -- id of tracked objects
+local recentObjs = {}
+local MAX_RECENT = 30
 
 -- List of object lists
 local lists = {
@@ -62,6 +64,10 @@ hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightTo
 
 -- Menu categories and subcategories
 local categories = {
+    {
+      name = "Recent",
+      items = recentObjs,
+    },
     {
         name = "Powerups",
         items = {
@@ -745,7 +751,8 @@ local categories = {
             { name = "Bobomb buddy", behavior = id_bhvBobombBuddy, model = E_MODEL_BOBOMB_BUDDY },
             { name = "Bobomb opens cannon", behavior = id_bhvBobombBuddyOpensCannon, model = E_MODEL_BOBOMB_BUDDY },
             { name = "Blue fish", behavior = id_bhvBlueFish, model = E_MODEL_FISH },
-            { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
+            -- Commented because it just flies outside of the map
+            -- { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
             { name = "Castle flag", behavior = id_bhvCastleFlagWaving, model = E_MODEL_CASTLE_GROUNDS_FLAG },
             -- {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
             -- {name = "Fish group", model = E_MODEL_FISH, behavior = id_bhvFishGroup},
@@ -1115,6 +1122,23 @@ function spawn_selected(m)
 
     if o then
         next_object_id = next_object_id + 1
+
+        -- This section adds spawned object to the recent section
+        -- This for is for removing duplicates
+        for i = #recentObjs, 1, -1 do
+          if recentObjs[i] == obj then
+              table.remove(recentObjs, i)
+              break
+          end
+        end
+
+        -- Insert just spawned object in Recent section
+        table.insert(recentObjs, 1, obj)
+
+        -- No more than MAX_RECENT objects in the Recent section
+        if #recentObjs > MAX_RECENT then
+          table.remove(recentObjs)
+        end
     end
 
     data.cooldown = COOLDOWN_FRAMES
