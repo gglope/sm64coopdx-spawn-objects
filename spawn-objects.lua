@@ -1020,6 +1020,12 @@ function spawn_selected(m)
         -- Insert just spawned object in Recent section
         table.insert(recentObjs, 1, obj)
 
+        -- When spawning object from Recent catgeory (selectedCategory == 1),
+        -- jump to first position, because spawned object also jumps in first position
+        if selectedCategory == 1 then
+            selectedObjectInCat[selectedCategory] = 1
+        end
+
         -- No more than MAX_RECENT objects in the Recent section
         if #recentObjs > MAX_RECENT then
           table.remove(recentObjs)
