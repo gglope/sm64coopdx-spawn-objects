@@ -1,19 +1,13 @@
 -- name: Spawn Objects D (beta testing)
 -- description: Spawn and delete objects
 --
+-- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
+-- the one already spawned with the map
 -- - Submarine center is at the right of visible object position, so a special
 -- function is needed for it or the model needs fixing in blender
 
-local vowels = {
-    ["A"] = true,
-    ["E"] = true,
-    ["I"] = true,
-    ["O"] = true,
-    ["U"] = true,
-}
-
 -- Parameters
-local COOLDOWN_FRAMES = 40
+local COOLDOWN_FRAMES = 50
 local COOLDOWN_FRAMES_DEL = 20
 local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
 
@@ -33,11 +27,11 @@ local lists = {
     OBJ_LIST_GENACTOR,
     OBJ_LIST_PUSHABLE, -- Goombas, Koopas, etc.
     OBJ_LIST_LEVEL,
-    OBJ_LIST_DEFAULT,
+    OBJ_LIST_DEFAULT, -- Lots of generic powerups, platforms, hazards, and misc are here
     OBJ_LIST_SURFACE, -- Thwomp, Dorrie, Submarine, many platforms
     OBJ_LIST_POLELIKE, -- Trees, Tweester, etc.
-    OBJ_LIST_SPAWNER,
-    -- OBJ_LIST_UNIMPORTANT, -- uncomment only if you also want to delete butterflies, fish, etc.
+    OBJ_LIST_SPAWNER, -- objects whose job is to spawn other things (coin formations, tumbling bridge pieces, etc.)
+    -- OBJ_LIST_UNIMPORTANT,
 }
 
 -- This two together form the id of an object
@@ -485,7 +479,7 @@ local categories = {
                 behavior = id_bhvTTCRotatingSolid,
                 model = E_MODEL_TTC_ROTATING_CUBE,
                 name = "Rotating Cube",
-                spawnYOffset = -80,
+                spawnYOffset = 0,
             },
             {
                 behavior = id_bhvPushableMetalBox,
@@ -496,12 +490,12 @@ local categories = {
             },
             { behavior = id_bhvBreakableBox, model = E_MODEL_ERROR_MODEL, name = "ERROR" },
             { name = "Breakable box small", behavior = id_bhvBreakableBoxSmall, model = E_MODEL_BREAKABLE_BOX_SMALL },
-            { name = "JRB floating box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbFloatingBox },
+            { name = "JRB floating box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbFloatingBox, spawnYOffset = 100 },
             {
                 name = "Staircase step",
                 model = E_MODEL_BBH_STAIRCASE_STEP,
                 behavior = id_bhvHiddenStaircaseStep,
-                spawnYOffset = -300,
+                spawnYOffset = -350,
             },
             {
                 name = "Water level pillar",
@@ -646,11 +640,12 @@ local categories = {
             { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby },
             { behavior = id_bhvUkiki, model = E_MODEL_UKIKI, name = "Monkey" },
             { name = "Monkey Macro", model = E_MODEL_UKIKI, behavior = id_bhvMacroUkiki },
+            -- Commented because this is already part of "Sinking cage platform"
             -- { behavior = id_bhvDDDPole, model = E_MODEL_DDD_POLE, name = "DDD pole" },
-            { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
+            -- { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
             { name = "Blue coin switch", behavior = id_bhvBlueCoinSwitch, model = E_MODEL_BLUE_COIN_SWITCH },
             -- {name = "Bowser key", behavior = id_bhvBowserKey, model = E_MODEL_BOWSER_KEY},
-            { name = "Chain chomp gate", behavior = id_bhvChainChompGate, model = E_MODEL_BOB_CHAIN_CHOMP_GATE },
+            { name = "Chain chomp gate", behavior = id_bhvChainChompGate, model = E_MODEL_BOB_CHAIN_CHOMP_GATE, spawnOffset = 300, spawnYaw = 32768},
             -- Questo sotto può essere interessante
             { name = "Holdable object (test)", behavior = id_bhvBetaHoldableObject, model = E_MODEL_BULLY },
             {
@@ -703,7 +698,7 @@ local categories = {
             {
                 behavior = id_bhvTtmRollingLog,
                 model = E_MODEL_TTM_ROLLING_LOG,
-                name = "Log",
+                name = "Log TTM",
                 spawnOffset = -100,
                 spawnYOffset = -1100,
                 spawnRoll = 16384,
@@ -852,10 +847,10 @@ local categories = {
     --     }
     -- },
     {
-        name = "Needs fixing",
+        name = "Bugged",
         items = {
             {
-                name = "WDW rotating platform (bugged)",
+                name = "WDW rotating platform",
                 model = E_MODEL_WDW_ROTATING_PLATFORM,
                 behavior = id_bhvRotatingPlatform,
             },
@@ -1469,6 +1464,42 @@ local function fix_wooden_post(obj)
     obj_set_model_extended(obj, E_MODEL_WOODEN_POST)
 end
 hook_behavior(id_bhvWoodenPost, OBJ_LIST_SURFACE, false, fix_wooden_post, nil)
+
+-- Fix sinking cage platform's invisible DDD pole
+local function fix_ddd_pole(obj)
+    obj_set_model_extended(obj, E_MODEL_DDD_POLE)
+    -- obj_set_model_extended(obj, E_MODEL_BITS_BLUE_PLATFORM)
+end
+-- hook_behavior(id_bhvDDDPole, OBJ_LIST_POLELIKE, false, fix_ddd_pole, nil)
+hook_behavior(id_bhvDddMovingPole, OBJ_LIST_POLELIKE, false, fix_ddd_pole, nil)  -- just in case both variants exist
+
+-- Fix Cloud
+local function fix_cloud(obj)
+    obj_set_model_extended(obj, E_MODEL_MIST)
+end
+-- hook_behavior(id_bhvCloud, OBJ_LIST_DEFAULT, false, fix_cloud, nil)
+hook_behavior(id_bhvCloudPart, OBJ_LIST_DEFAULT, false, fix_cloud, nil)
+
+-- Fix Pokey
+-- local function fix_pokey_head(obj)
+--     obj_set_model_extended(obj, E_MODEL_POKEY_HEAD)
+-- end
+local function fix_pokey_body_part(obj)
+    obj_set_model_extended(obj, E_MODEL_POKEY_BODY_PART)
+end
+-- hook_behavior(id_bhvPokey, OBJ_LIST_GENACTOR, false, fix_pokey_head, nil)
+-- hook_behavior(id_bhvPokey, OBJ_LIST_DEFAULT,  false, fix_pokey_head, nil)
+hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_GENACTOR, false, fix_pokey_body_part, nil)
+-- hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_DEFAULT,  false, fix_pokey_body_part, nil)
+
+-- Not working
+-- -- Fix tumbling bridge pieces
+-- local function fix_tumbling_bridge(obj)
+--     -- obj_set_model_extended(obj, E_MODEL_BITFS_TUMBLING_PLATFORM)
+--     obj_set_model_extended(obj, E_MODEL_BITFS_TUMBLING_PLATFORM_PART)
+--     obj.oFlags = obj.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+-- end
+-- hook_behavior(id_bhvTumblingBridgePlatform, OBJ_LIST_SURFACE, false, fix_tumbling_bridge, nil)
 
 hook_event(HOOK_ON_OBJECT_LOAD, function(o)
     if o.oModPlayerId and o.oModPlayerId > 0 then
