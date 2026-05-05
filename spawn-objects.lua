@@ -53,7 +53,7 @@ local categories = {
             { name = "Jumping 1UP", behavior = id_bhv1upJumpOnApproach, model = E_MODEL_1UP },
             -- {name = "Hidden 1up", model = E_MODEL_1UP, behavior = id_bhvHidden1up},
             { name = "Hidden 1up pole", model = E_MODEL_1UP, behavior = id_bhvHidden1upInPole },
-            { name = "Coin formation", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 200 },
+            { name = "Coin formation", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 480 },
             { name = "Red coin", model = E_MODEL_RED_COIN, behavior = id_bhvRedCoin, spawnOffset = 100 },
             { name = "Blue coin jumping", behavior = id_bhvBlueCoinJumping, model = E_MODEL_BLUE_COIN },
             { name = "Blue coin sliding", behavior = id_bhvBlueCoinSliding, model = E_MODEL_BLUE_COIN },
