@@ -971,7 +971,8 @@ end
 
 -- packets used to:
 -- - propagate deletions
--- - Others: TODO
+-- - tell all player to delete all objects
+-- - other (TODO)
 hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
     print("Packet received: " .. packet.type)
 
@@ -1036,7 +1037,7 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
     -- Only if the host (who requested clearall) and the local player are in the same level
     elseif packet.type == PACKET_DELALL and packet.level == gNetworkPlayers[0].currLevelNum then
         -- Delete all objects as well
-        clearall(true)
+        clearall()
     end
 end)
 
@@ -1559,17 +1560,10 @@ hook_event(HOOK_ON_OBJECT_LOAD, function(o)
 end)
 
 -- Used from the hook chat command and also on packet receive PACKET_DELALL
-function clearall(can)
-    if not can and not network_is_server() then
-        -- if gMarioStates[0].playerIndex == 0 then
-        --   djui_popup_create("\\#ff4444\\Only the host can load maps!", 2)
-        -- end
-        djui_popup_create("\\#ff4444\\Only the host can clear all objects!", 2)
-        return true
-    end
-
+function clearall()
     local parents = {}
     local children = {}
+
     for _, list in ipairs(lists) do
         local obj = obj_get_first(list)
         while obj ~= nil do
@@ -1605,7 +1599,12 @@ function clearall(can)
 end
 
 hook_chat_command("clearall", "Delete all spawned objects on this map", function(unused)
-    clearall(true)
+    if not network_is_server() then
+        djui_popup_create("\\#ff4444\\Only the host can clear all objects!", 2)
+        return true
+    end
+
+    clearall()
 
     -- Tell other Marios to also try to delete all spawned objects
     network_send(true, {
