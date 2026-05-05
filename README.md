@@ -60,7 +60,7 @@ Available to host only:
 syntax fmt
 
 ```bash
-stylua --indent-type Spaces --indent-width 4 --line-endings Unix spawn-objects-singlelevel.lua
+stylua --indent-type Spaces --indent-width 4 --line-endings Unix spawn-objects-d.lua
 ```
 
 General:

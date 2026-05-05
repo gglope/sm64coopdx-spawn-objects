@@ -685,7 +685,7 @@ local categories = {
         name = "Tilted objects",
         items = {
             {
-                name = "Wood piece",
+                name = "T. Wood piece",
                 model = E_MODEL_LLL_WOOD_BRIDGE,
                 behavior = id_bhvLllWoodPiece,
                 spawnYOffset = 100,
@@ -693,7 +693,7 @@ local categories = {
                 spawnRoll = 32768,
             },
             {
-                name = "Sinking rock block",
+                name = "T. Sinking rock block",
                 model = E_MODEL_LLL_SINKING_ROCK_BLOCK,
                 behavior = id_bhvLllSinkingRockBlock,
                 spawnOffset = 200,
@@ -704,13 +704,13 @@ local categories = {
             {
                 behavior = id_bhvTtmRollingLog,
                 model = E_MODEL_TTM_ROLLING_LOG,
-                name = "Log TTM",
+                name = "T. Log TTM",
                 spawnOffset = -100,
                 spawnYOffset = -1100,
                 spawnRoll = 16384,
             },
             {
-                name = "Log LLL",
+                name = "T. Log LLL",
                 model = E_MODEL_LLL_ROLLING_LOG,
                 behavior = id_bhvLllRollingLog,
                 spawnOffset = -100,
@@ -720,13 +720,13 @@ local categories = {
             {
                 behavior = id_bhvBitfsSinkingPlatforms,
                 model = E_MODEL_BITFS_SINKING_PLATFORMS,
-                name = "Sinking Platform",
+                name = "T. Sinking Platform",
                 spawnOffset = 200,
                 spawnYOffset = 200,
                 spawnPitch = 49152,
             },
             {
-                name = "Sinking rectangular platform",
+                name = "T. Sinking rectangular platform",
                 model = E_MODEL_LLL_SINKING_RECTANGULAR_PLATFORM,
                 behavior = id_bhvLllSinkingRectangularPlatform,
                 spawnOffset = 200,
@@ -734,7 +734,7 @@ local categories = {
                 spawnPitch = -16384,
             },
             {
-                name = "Sinking square platforms",
+                name = "T. Sinking square platforms",
                 model = E_MODEL_LLL_SINKING_SQUARE_PLATFORMS,
                 behavior = id_bhvLllSinkingSquarePlatforms,
                 spawnOffset = 200,
@@ -808,7 +808,7 @@ local categories = {
             { name = "Chest lid", behavior = id_bhvBetaChestLid, model = E_MODEL_TREASURE_CHEST_LID },
             { name = "Boo key", behavior = id_bhvAlphaBooKey, model = E_MODEL_BETA_BOO_KEY },
             { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star", spawnYOffset = 100 },
-            { name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel },
+            { name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel, spawnYaw = 32768},
             {
                 name = "Wind Snowman Head",
                 model = E_MODEL_CCM_SNOWMAN_HEAD,
@@ -1603,7 +1603,7 @@ function clearall(can)
     return true
 end
 
-hook_chat_command("clearall", "Deleted all spawned objects on this map", function(unused)
+hook_chat_command("clearall", "Delete all spawned objects on this map", function(unused)
     clearall(true)
 
     -- Tell other Marios to also try to delete all spawned objects
