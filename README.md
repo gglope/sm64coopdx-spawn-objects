@@ -53,7 +53,8 @@ Available to host only:
 # CREDITS
 
 - [Beard's Mod](https://mods.sm64coopdx.com/mods/beards-mod.181/)
-- [sm64coopdx forum](https://mods.sm64coopdx.com/forums/)
+- sm64coopdx [forum](https://mods.sm64coopdx.com/forums/) and [documentation](https://github.com/coop-deluxe/sm64coopdx/tree/main/docs/lua)
+- Random objects script from [Drenchy drive](https://drive.google.com/drive/folders/169w_iUIyVJBSf-39y1D26-tvpueW92wE)
 
 # Useful info about developing
 

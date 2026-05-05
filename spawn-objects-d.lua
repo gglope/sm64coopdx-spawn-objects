@@ -1009,13 +1009,13 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
         -- Find all the children of the object to delete
         if foundObj ~= nil then
             local children = {}
-            local idx = 1
+            -- local idx = 1
             for _, list in ipairs(lists) do
                 local obj = obj_get_first(list)
                 while obj ~= nil do
                     if obj and obj ~= foundObj and obj.parentObj == foundObj then
                         -- print("Found children " .. idx)
-                        idx = idx + 1
+                        -- idx = idx + 1
                         table.insert(children, obj)
                     end
                     obj = obj_get_next(obj)
@@ -1169,9 +1169,10 @@ local function find_nearest_object(m)
             end
 
             -- Only objects spawned using the mod are deletable.
-            -- This is because vanilla objects can't be identified
+            -- This is because vanilla objects can't be identified, unless all
+            -- vanilla objects also get an ID assigned
             local isDeletable = false
-            if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+            if not isMarioObj and obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
                 isDeletable = true
             end
 
@@ -1291,24 +1292,24 @@ local function handle_object_deletion(m)
 
         -- Tell other Marios to also try to delete the same object
         -- > 0 cause vanilla objects are 0, and they can't be identified
-        if oModPlayerId > 0 and oModObjNum > 0 then
-            network_send(true, {
-                type = PACKET_DELOBJ,
-                level = gNetworkPlayers[0].currLevelNum,
-                oModPlayerId = oModPlayerId,
-                oModObjNum = oModObjNum,
-            })
-            print("Sent packet: PACKET_DELOBJ")
-        end
+        network_send(true, {
+            type = PACKET_DELOBJ,
+            level = gNetworkPlayers[0].currLevelNum,
+            oModPlayerId = oModPlayerId,
+            oModObjNum = oModObjNum,
+        })
+        print("Sent packet: PACKET_DELOBJ")
 
         -- Popup only for local player
-        if m.playerIndex == 0 then
-            djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
-        end
+        -- if m.playerIndex == 0 then
+        --     djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
+        -- end
+        djui_popup_create("\\#ffff00\\Deleted nearest object", 0.5)
     else
-        if m.playerIndex == 0 then
-            djui_popup_create("No nearby object found", 0.5)
-        end
+        -- if m.playerIndex == 0 then
+        --     djui_popup_create("No nearby object found", 0.5)
+        -- end
+        djui_popup_create("No nearby object found", 0.5)
     end
 
     data.deletionCooldown = COOLDOWN_FRAMES_DEL
