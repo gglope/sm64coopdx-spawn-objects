@@ -86,10 +86,12 @@ local categories = {
             { behavior = id_bhvWingCap, model = E_MODEL_TOADS_WING_CAP, name = "Wing Cap", spawnOffset = 200 },
             { behavior = id_bhvMetalCap, model = E_MODEL_TOADS_METAL_CAP, name = "Metal Cap", spawnOffset = 200 },
             { behavior = id_bhvVanishCap, model = E_MODEL_TOADS_CAP, name = "Vanish Cap", spawnOffset = 200 },
-            { name = "Jumping 1UP", behavior = id_bhv1upJumpOnApproach, model = E_MODEL_1UP },
+            -- { name = "Jumping 1UP", behavior = id_bhv1upJumpOnApproach, model = E_MODEL_1UP },
             -- {name = "Hidden 1up", model = E_MODEL_1UP, behavior = id_bhvHidden1up},
             { name = "Hidden 1up pole", model = E_MODEL_1UP, behavior = id_bhvHidden1upInPole },
-            { name = "Coin formation", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 480 },
+            { name = "Coin formation (front)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 480},
+            { name = "Coin formation (above)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 0, spawnYOffset = 200, param2nd = 1 },
+            { name = "Coin formation (circle)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 0, param2nd = 2},
             { name = "Red coin", model = E_MODEL_RED_COIN, behavior = id_bhvRedCoin, spawnOffset = 100 },
             { name = "Blue coin jumping", behavior = id_bhvBlueCoinJumping, model = E_MODEL_BLUE_COIN },
             { name = "Blue coin sliding", behavior = id_bhvBlueCoinSliding, model = E_MODEL_BLUE_COIN },
@@ -480,7 +482,8 @@ local categories = {
     {
         name = "Squares",
         items = {
-            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box" },
+            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box"},
+            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box (Big)", param2nd = 3 },
             {
                 behavior = id_bhvTTCRotatingSolid,
                 model = E_MODEL_TTC_ROTATING_CUBE,
@@ -534,6 +537,7 @@ local categories = {
             { name = "Blue flames group", behavior = id_bhvBlueFlamesGroup, model = E_MODEL_BLUE_FLAME },
             { behavior = id_bhvToxBox, model = E_MODEL_SSL_TOX_BOX, name = "Tox-Box" },
             { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower", spawnOffset = 200 },
+            { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower (upwards)", spawnOffset = 200, param2nd = 4 },
             { behavior = id_bhvFireSpitter, model = E_MODEL_BOWLING_BALL, name = "Fire Spitter", spawnOffset = 200 },
             { behavior = id_bhvCirclingAmp, model = E_MODEL_AMP, name = "Circling Amp", spawnOffset = 0 },
             { behavior = id_bhvHomingAmp, model = E_MODEL_AMP, name = "Homing Amp", spawnOffset = 300 },
@@ -577,8 +581,10 @@ local categories = {
         name = "Enemies",
         items = {
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba", spawnOffset = 200 },
+            { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba (small)", spawnOffset = 200, param2nd = 2},
             { name = "Goomba triplet spawner", model = E_MODEL_ERROR_MODEL, behavior = id_bhvGoombaTripletSpawner },
-            { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200 },
+            -- { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200 },
+            { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200, param2nd = 1 },
             { name = "Bobomb", behavior = id_bhvBobomb, model = E_MODEL_BLACK_BOBOMB, spawnOffset = 100 },
             { behavior = id_bhvBobomb, model = E_MODEL_BOBOMB_BUDDY, name = "Bobomb Not-Buddy", spawnOffset = 200 },
             { behavior = id_bhvSmallBully, model = E_MODEL_BULLY, name = "Bully", spawnOffset = 100 },
@@ -612,6 +618,8 @@ local categories = {
     {
         name = "Big enemies",
         items = {
+            { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba (big)", spawnOffset = 300, param2nd = 1},
+            { name = "Goomba triplet spawner (big)", model = E_MODEL_ERROR_MODEL, behavior = id_bhvGoombaTripletSpawner, param2nd = 1 },
             { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
             {
                 behavior = id_bhvBigBully,
@@ -628,6 +636,8 @@ local categories = {
             { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2 },
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
             { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Balcony big boo", spawnOffset = 300 },
+            -- Appears small
+            -- { name = "Piranha plant (big)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant, param2nd = 1 },
         },
     },
     {
@@ -1089,7 +1099,6 @@ function spawn_selected(m)
         o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
         o.oTimer = 0
         -- o.oOpacity = 255  -- not working for ttc objects
-        -- obj.oBehParams2ndByte = 0
         o.oFaceAngleYaw = finalYaw
         o.header.gfx.angle.y = finalYaw
         o.oMoveAngleYaw = finalYaw
@@ -1109,9 +1118,13 @@ function spawn_selected(m)
         o.header.gfx.angle.z = finalRoll
         -- o.oMoveAngleRoll = finalRoll
 
+        o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
+
         -- Fixes cannon yaw
         if obj.behavior == id_bhvCannon then
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
+        else
+            o.oBehParams2ndByte = obj.param2nd or 0
         end
 
         o.oModPlayerId = gPlayerSyncTable[0].myPlayerId
