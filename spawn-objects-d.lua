@@ -1142,7 +1142,7 @@ function spawn_selected(m)
         o.header.gfx.angle.z = finalRoll
         -- o.oMoveAngleRoll = finalRoll
 
-        o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
+        -- o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
 
         -- Fixes cannon yaw
         if obj.behavior == id_bhvCannon then
