@@ -8,7 +8,7 @@
 
 -- Parameters
 local COOLDOWN_FRAMES = 50
-local SPEED_MULTIPLIER = 5.0 -- was 1.5 . Adjusts object spawn position based on Mario speed
+local SPEED_MULTIPLIER = 5.0 -- Adjusts object spawn position based on Mario speed
 
 -- local TARGET_LEVEL = LEVEL_BOB
 -- local TARGET_LEVEL = LEVEL_RR
@@ -29,7 +29,7 @@ hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightTo
 -- Menu categories and subcategories
 local categories = {
     {
-      name = "Recent",
+      name = "Recents",
       items = recentObjs,
     },
     {
@@ -99,11 +99,11 @@ local categories = {
                 spawnYOffset = -200,
             },
             {
-                name = "Bitfs elevator (still)",
-                behavior = id_bhvActivatedBackAndForthPlatform,
-                model = E_MODEL_BITFS_ELEVATOR,
-                spawnOffset = 100,
-                spawnYOffset = -150,
+                name = "WDW (NON)rotating platform",
+                model = E_MODEL_WDW_ROTATING_PLATFORM,
+                behavior = id_bhvRotatingPlatform,
+                spawnYOffset = -400,
+                param2nd = 1
             },
             {
                 name = "Floor trap",
@@ -442,6 +442,7 @@ local categories = {
                 model = E_MODEL_BITFS_SINKING_CAGE_PLATFORM,
                 spawnOffset = 200,
                 spawnYOffset = -150,
+                param2nd = 1
             },
             {
                 name = "TTC elevator",
@@ -450,19 +451,20 @@ local categories = {
                 spawnOffset = 0,
                 spawnYOffset = -100,
             },
-            {
-                name = "TTC push block",
-                model = E_MODEL_TTC_PUSH_BLOCK,
-                behavior = id_bhvTTCMovingBar,
-                spawnOffset = 300,
-                spawnYOffset = -200,
-            },
-            {
-                name = "TTC pit block",
-                model = E_MODEL_TTC_PIT_BLOCK,
-                behavior = id_bhvTTCPitBlock,
-                spawnYOffset = -300,
-            },
+            -- Disable because no one will use these
+            -- {
+            --     name = "TTC push block",
+            --     model = E_MODEL_TTC_PUSH_BLOCK,
+            --     behavior = id_bhvTTCMovingBar,
+            --     spawnOffset = 300,
+            --     spawnYOffset = -200,
+            -- },
+            -- {
+            --     name = "TTC pit block",
+            --     model = E_MODEL_TTC_PIT_BLOCK,
+            --     behavior = id_bhvTTCPitBlock,
+            --     spawnYOffset = -300,
+            -- },
             -- Disabled because sometimes Mario gets teleported way out of bounds
             -- {name = "Pyramid elevator", model = E_MODEL_SSL_PYRAMID_ELEVATOR, behavior = id_bhvPyramidElevator},
         },
@@ -507,6 +509,8 @@ local categories = {
         items = {
             -- { behavior = id_bhvMontyMoleRock, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
             -- { behavior = id_bhvFlameBowser, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
+            { name = "Snow mound", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384},
+            { name = "Snow mound pushing you", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384, spawnOffset = -300},
             { behavior = id_bhvBowserShockWave, model = E_MODEL_BOWSER_WAVE, name = "Shockwave", spawnOffset = 0 },
             { behavior = id_bhvFlame, model = E_MODEL_RED_FLAME, name = "Red Flame", spawnOffset = 200 },
             { name = "Explosion", behavior = id_bhvExplosion, model = E_MODEL_EXPLOSION, spawnOffset = 400 },
@@ -854,13 +858,14 @@ local categories = {
     {
         name = "Bugged",
         items = {
-            {
-                name = "WDW rotating platform",
-                model = E_MODEL_WDW_ROTATING_PLATFORM,
-                behavior = id_bhvRotatingPlatform,
-            },
-            -- Fix movement direction if possible
-            { name = "Snow mound", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound },
+            -- Wrong hitbox
+            -- {
+            --     name = "Bitfs elevator (still)",
+            --     behavior = id_bhvActivatedBackAndForthPlatform,
+            --     model = E_MODEL_BITFS_ELEVATOR,
+            --     spawnOffset = 100,
+            --     spawnYOffset = -150,
+            -- },
             -- Fix direction, also always goes same direction
             { name = "SPINDEL", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
             {
@@ -1276,3 +1281,47 @@ hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_GENACTOR, false, fix_pokey_body_part
 --     obj.oFlags = obj.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
 -- end
 -- hook_behavior(id_bhvTumblingBridgePlatform, OBJ_LIST_SURFACE, false, fix_tumbling_bridge, nil)
+
+function fix_snow_mound_init(o)
+    o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+    -- Object intangible is collisionData not declared (don't know why)
+    o.collisionData = gGlobalObjectCollisionData.sl_seg7_collision_sliding_snow_mound
+    o.oCollisionDistance = 1500
+end
+-- Replace origina behavior so that snow mound goes in the direction Mario is facing
+function fix_snow_mound_loop(o)
+    local yaw = o.oMoveAngleYaw - 16384
+
+    o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+    -- o.oIntangibleTimer = 0
+
+    if o.oAction == 0 then
+        local speed = 40.0
+        o.oVelX = speed * sins(yaw)
+        o.oVelZ = speed * coss(yaw)
+        o.oPosX = o.oPosX + o.oVelX
+        o.oPosZ = o.oPosZ + o.oVelZ
+
+        if o.oTimer > 117 then
+            o.oAction = 1
+        end
+    elseif o.oAction == 1 then
+        local speed = 5.0
+        o.oVelX = speed * sins(yaw)
+        o.oVelZ = speed * coss(yaw)
+        o.oVelY = -10.0
+
+        o.oPosX = o.oPosX + o.oVelX
+        o.oPosZ = o.oPosZ + o.oVelZ
+        o.oPosY = o.oPosY + o.oVelY
+
+        if o.oTimer > 50 then
+            o.activeFlags = ACTIVE_FLAG_DEACTIVATED
+        end
+    end
+
+    -- cur_obj_move_using_vel()
+    load_object_collision_model()
+end
+-- hook_behavior(id_bhvSlidingSnowMound, OBJ_LIST_SURFACE, true, nil, fix_snow_mound_loop)
+hook_behavior(id_bhvSlidingSnowMound, OBJ_LIST_SURFACE, true, fix_snow_mound_init, fix_snow_mound_loop)

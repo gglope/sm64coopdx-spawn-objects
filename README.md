@@ -82,3 +82,7 @@ Other:
 
 - One can choose to keep the table of objects only on the host device, but this means that everytime a player enters a level visited before, the host would be forced to send the entire list of objects on that level to the player who is entering it, in order for him to restore the objects
 
+Links
+
+- gGlobalObjectCollisionData: https://github.com/coop-deluxe/sm64coopdx/blob/main/docs/lua/structs.md#GlobalObjectCollisionData
+
