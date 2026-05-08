@@ -21,9 +21,7 @@ The versions can be identified by the letters in the script name:
 
 # Bugs
 
-# Settings and commands
-
-## Commands
+# Commands
 
 - D-PAD UP/DOWN: select next/previous element
 - D-PAD RIGHT in menu: go to selected submenu
@@ -36,7 +34,7 @@ The versions can be identified by the letters in the script name:
 - /loadmap (host only) to load saved map
 - /clearall (host only) delete all mod spawned objects
 
-## Settings
+# Settings
 
 Available to anyone:
 
@@ -71,12 +69,14 @@ General:
 - `network_init_object` in the init function of `spawn_sync_object` can cause desync and weird stuff
 - gGlobalSyncTable are not good to track the objects
 
-What is the problem with tracking objects:
 
-- If an object despaws by itself (for example a shell gets used, or a wing cap hits the despawn timer) the object would still be in the tracking table?
-- I thought of using hooks everytime an object loads or unloads (this solution can possibily even avoid using `network_send`), so we are sure that even thought an object autodespawn by itself the deletion is tracked in the users tables
-- But another problem came up. When a player exits a level and all objects despawn, hook on object unload also deletes the spawned objects from the table, invalidating the entire persistence functionality
-- Will try avoiding this using a flag (like `isClearingLevel = 1`)
+Objects tracking (TODO):
+
+- Every user has its own table cointaining objects spawned by every player. This table also stores the objects spawned in maps different from the one the player's in
+- Everytime a new object is spawned, the user who spawned it sends a packet to tell other connected players to add add the new object in their tables too, so that all users have the same table (manual sync)
+- Some objects despawn by themselves, without anyone deleting it (for example a shell gets used, or a wing cap hits the despawn timer). So, in order to keep the tracking table consistent, we need to delete these objects from the table as well. By using `HOOK_ON_SYNC_ONJECT_UNLOAD`, when an object disappears, we can implement code to delete the the object is deleted from the tracking table of the users
+- One problem with this approach is that if the host launches a /clearall, `HOOK_ON_SYNC_ONJECT_UNLOAD` will be executed 100s of times, traversing the entire tracking table as many times as the deleted objects, instead of having a single traversing that deletes all the deleted objects from the table. Maybe a mixed approach? Code `HOOK_ON_SYNC_ONJECT_UNLOAD` would need to be disabled before clearall function deletes everything
+- Another problem is that when a player exits a level and all objects despawn, thsi `HOOK_ON_SYNC_ONJECT_UNLOAD` would also delete the spawned objects from the table, invalidating the entire persistence functionality. Guess if this can be avoided using a flag like `isClearingLevel = 1`, that is set before the object unload happens
 
 Other:
 
