@@ -382,7 +382,7 @@ local categories = {
                 param2nd = 2,
             },
             {
-                name = "RR rotating bridge platform",
+                name = "Rotating bridge platform (RR)",
                 model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM,
                 behavior = id_bhvRrRotatingBridgePlatform,
                 spawnYOffset = -700,
@@ -779,6 +779,28 @@ local categories = {
                 spawnYOffset = 100,
                 spawnPitch = -16384,
             },
+            {
+                name = "T. Rotating bridge platform (RR)",
+                model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM,
+                behavior = id_bhvRrRotatingBridgePlatform,
+                spawnYOffset = 0,
+                spawnRoll = 32768
+            },
+            -- NOT WORKING, roll gets reset
+            -- {
+            --     name = "Bitfs Tilting pyramid",
+            --     behavior = id_bhvBitfsTiltingInvertedPyramid,
+            --     model = E_MODEL_BITFS_TILTING_SQUARE_PLATFORM,
+            --     spawnYOffset = -300,
+            --     spawnRoll = 32768
+            -- },
+            -- {
+            --     name = "LLL Tilting pyramid",
+            --     model = E_MODEL_LLL_TILTING_SQUARE_PLATFORM,
+            --     behavior = id_bhvLllTiltingInvertedPyramid,
+            --     spawnYOffset = -300,
+            --     spawnRoll = 32768
+            -- },
         },
     },
     {
@@ -1228,9 +1250,30 @@ local function find_nearest_object(m)
                 end
             end
 
-            -- TODO: Test this code. Is it too heavy?
-            ---- -- ACT_TALKING does not solve problems with conversations
-            ---- -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
+            -- TODO: This only works if the Mario who deletes is interacting,
+            -- while commented code below for anyone. Anyway delete is already
+            -- too heavy, so i would like not to use the code below if possible
+            -- ACT_TALKING does not solve problems with conversations
+            -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
+            local isInteracting = false
+            if not isMarioObj and isDeletable and not isDoor then
+                if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
+                    isInteracting = true
+                elseif
+                    (obj == m.interactObj or obj == m.usedObj)
+                    and (
+                        (m.action & ACT_FLAG_ON_POLE) ~= 0
+                        or (m.action & ACT_FLAG_HANGING) ~= 0
+                        or m.action == ACT_READING_NPC_DIALOG
+                        or m.action == ACT_WAITING_FOR_DIALOG
+                        or m.action == ACT_READING_AUTOMATIC_DIALOG
+                        or m.action == ACT_READING_SIGN
+                        or m.action == ACT_IN_CANNON
+                    )
+                then
+                    isInteracting = true
+                end
+            end
             --if not isMarioObj and not isDoor then
             --  local isInteracting = false
             --  for i = 0, MAX_PLAYERS - 1 do
@@ -1247,8 +1290,10 @@ local function find_nearest_object(m)
             --                    or m.action == ACT_WAITING_FOR_DIALOG
             --                    or m.action == ACT_READING_AUTOMATIC_DIALOG
             --                    or m.action == ACT_READING_SIGN
+            --                    or m.action == ACT_IN_CANNON
             --                ) then
             --                isInteracting = true
+            --                break
             --            end
             --          end
             --      end
@@ -1256,7 +1301,7 @@ local function find_nearest_object(m)
             --end
 
             -- if not isMarioObj and not isDoor and not isInteracting then
-            if not isMarioObj and not isDoor and isDeletable then
+            if not isMarioObj and not isDoor and isDeletable and not isInteracting then
                 local dx = obj.oPosX - m.pos.x
                 local dy = obj.oPosY - m.pos.y
                 local dz = obj.oPosZ - m.pos.z
