@@ -6,7 +6,7 @@ Spawn objects from a categorized menu and delete nearest object. Depending on th
 
 # Which one to choose
 
-Scripts that (almost) work (all others do not work):
+Scripts that work (with some bug)(all others do not work):
 
 - spawn-objects.lua
 - spawn-objects-d.lua

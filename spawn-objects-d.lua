@@ -625,19 +625,19 @@ local categories = {
             { behavior = id_bhvChuckya, model = E_MODEL_CHUCKYA, name = "Chuckya", spawnOffset = 200 },
             { behavior = id_bhvScuttlebug, model = E_MODEL_SCUTTLEBUG, name = "Scuttlebug", spawnOffset = 200 },
             { behavior = id_bhvFlyGuy, model = E_MODEL_FLYGUY, name = "Fly Guy", spawnOffset = 300 },
-            { behavior = id_bhvEnemyLakitu, model = E_MODEL_LAKITU, name = "Lakitu", spawnOffset = 200 },
-            { behavior = id_bhvBoo, model = E_MODEL_BOO, name = "Boo", spawnOffset = 300 },
-            { behavior = id_bhvSwoop, model = E_MODEL_SWOOP, name = "Bat", spawnOffset = 200 },
-            { behavior = id_bhvSnufit, model = E_MODEL_SNUFIT, name = "Snufit", spawnOffset = 200 },
+            { behavior = id_bhvEnemyLakitu, model = E_MODEL_LAKITU, name = "Lakitu", spawnYOffset = 50},
+            { behavior = id_bhvBoo, model = E_MODEL_BOO, name = "Boo", spawnOffset = 300, spawnYOffset = 50 },
+            { behavior = id_bhvSwoop, model = E_MODEL_SWOOP, name = "Bat", spawnYOffset = 200 },
+            { behavior = id_bhvSnufit, model = E_MODEL_SNUFIT, name = "Snufit", spawnYOffset = 200 },
             { behavior = id_bhvKlepto, model = E_MODEL_KLEPTO, name = "Vulture", spawnOffset = 300 },
-            { behavior = id_bhvUnagi, model = E_MODEL_UNAGI, name = "Eel" },
-            { behavior = id_bhvBubba, model = E_MODEL_BUBBA, name = "Bubba", spawnOffset = 200 },
+            { behavior = id_bhvUnagi, model = E_MODEL_UNAGI, name = "Eel", spawnOffset = 300 },
+            { behavior = id_bhvBubba, model = E_MODEL_BUBBA, name = "Bubba", spawnOffset = 300 },
             { behavior = id_bhvClamShell, model = E_MODEL_CLAM_SHELL, name = "Clam Shell", spawnOffset = 400 },
             { behavior = id_bhvHeaveHo, model = E_MODEL_HEAVE_HO, name = "Heave-Ho", spawnOffset = 200 },
             { name = "Skeeter", model = E_MODEL_SKEETER, behavior = id_bhvSkeeter, spawnOffset = 400 },
             { name = "Spindrift", model = E_MODEL_SPINDRIFT, behavior = id_bhvSpindrift },
             { name = "Book", model = E_MODEL_BOOKEND, behavior = id_bhvFlyingBookend },
-            { name = "Moneybag hidden", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybagHidden },
+            { name = "Moneybag", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybagHidden },
             -- TODO: To make it work first spawn hole than mole. Can this be fixed?
             { name = "Mole hole (spawn first)", model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole },
             { name = "Mole (spawn second)", model = E_MODEL_MONTY_MOLE, behavior = id_bhvMontyMole },
@@ -1126,12 +1126,12 @@ function spawn_selected(m)
     local baseOffset = obj.spawnOffset or 200
     local forwardVel = m.forwardVel or 0
     local speedBonus = math.max(0, forwardVel) * SPEED_MULTIPLIER
-    local effectiveOffset = baseOffset + speedBonus
+    local finalOffset = baseOffset + speedBonus
 
     local lateralOffset = obj.spawnLateralOffset or 0
-    local spawnX = m.pos.x + effectiveOffset * sins(m.faceAngle.y) - lateralOffset * coss(m.faceAngle.y) -- lateral component
+    local spawnX = m.pos.x + finalOffset * sins(m.faceAngle.y) - lateralOffset * coss(m.faceAngle.y) -- lateral component
     local spawnY = m.pos.y + (obj.spawnYOffset or 0)
-    local spawnZ = m.pos.z + effectiveOffset * coss(m.faceAngle.y) + lateralOffset * sins(m.faceAngle.y)
+    local spawnZ = m.pos.z + finalOffset * coss(m.faceAngle.y) + lateralOffset * sins(m.faceAngle.y)
 
     -- local finalYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
     local finalYaw = m.faceAngle.y + (obj.spawnYaw or 0)
