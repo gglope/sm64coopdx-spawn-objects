@@ -346,7 +346,7 @@ local categories = {
                 param2nd = 2,
             },
             {
-                name = "RR rotating bridge platform",
+                name = "Rotating bridge platform (RR)",
                 model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM,
                 behavior = id_bhvRrRotatingBridgePlatform,
                 spawnYOffset = -700,
@@ -517,7 +517,7 @@ local categories = {
             { name = "Blue flame", model = E_MODEL_BLUE_FLAME, behavior = id_bhvFlame, spawnYOffset = 100},
             { name = "Bowser bomb", behavior = id_bhvBowserBomb, model = E_MODEL_BOWSER_BOMB, spawnYOffset = 200 },
             { name = "Bowser flame", model = E_MODEL_RED_FLAME, behavior = id_bhvFlameBowser },
-            { name = "Bouncing fireball spawn", behavior = id_bhvBouncingFireball, model = E_MODEL_ERROR_MODEL },
+            { name = "Bouncing fireball spawn", behavior = id_bhvBouncingFireball, model = E_MODEL_STAR, spawnYOffset = 100 },
             -- {name = "Bouncing fireball flame", behavior = id_bhvBouncingFireballFlame, model = E_MODEL_RED_FLAME},
             -- {name = "Moving flames", behavior = id_bhvBetaMovingFlames, model = E_MODEL_RED_FLAME},
             -- {name = "Flame bouncing", model = E_MODEL_RED_FLAME, behavior = id_bhvFlameBouncing},
@@ -526,7 +526,8 @@ local categories = {
                 model = E_MODEL_RED_FLAME,
                 behavior = id_bhvFlameMovingForwardGrowing,
             },
-            { name = "Blue flames group", behavior = id_bhvBlueFlamesGroup, model = E_MODEL_BLUE_FLAME },
+            -- On this no yaw, pitch and roll is working. Will always hit the Mario who spawned it
+            { name = "Blue flames group", behavior = id_bhvBlueFlamesGroup, model = E_MODEL_BLUE_FLAME},
             { behavior = id_bhvToxBox, model = E_MODEL_SSL_TOX_BOX, name = "Tox-Box", spawnYOffset = 250 },
             { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower", spawnOffset = 200, spawnYOffset = 100},
             { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower (upwards)", spawnOffset = 200, param2nd = 4, spawnYOffset = 0},
@@ -574,7 +575,7 @@ local categories = {
         items = {
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba", spawnOffset = 200 },
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba (small)", spawnOffset = 200, param2nd = 2},
-            { name = "Goomba triplet spawner", model = E_MODEL_ERROR_MODEL, behavior = id_bhvGoombaTripletSpawner },
+            { name = "Goomba triplet spawner", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvGoombaTripletSpawner},
             -- { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200 },
             { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200, param2nd = 1 },
             { name = "Bobomb", behavior = id_bhvBobomb, model = E_MODEL_BLACK_BOBOMB, spawnOffset = 100 },
@@ -611,7 +612,7 @@ local categories = {
         name = "Big enemies",
         items = {
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba (big)", spawnOffset = 300, param2nd = 1},
-            { name = "Goomba triplet spawner (big)", model = E_MODEL_ERROR_MODEL, behavior = id_bhvGoombaTripletSpawner, param2nd = 1 },
+            { name = "Goomba triplet spawner (big)", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvGoombaTripletSpawner, param2nd = 1 },
             { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
             {
                 behavior = id_bhvBigBully,
@@ -743,6 +744,28 @@ local categories = {
                 spawnYOffset = 100,
                 spawnPitch = -16384,
             },
+            {
+                name = "T. Rotating bridge platform (RR)",
+                model = E_MODEL_RR_ROTATING_BRIDGE_PLATFORM,
+                behavior = id_bhvRrRotatingBridgePlatform,
+                spawnYOffset = 0,
+                spawnRoll = 32768
+            },
+            -- NOT WORKING, roll gets reset
+            -- {
+            --     name = "Bitfs Tilting pyramid",
+            --     behavior = id_bhvBitfsTiltingInvertedPyramid,
+            --     model = E_MODEL_BITFS_TILTING_SQUARE_PLATFORM,
+            --     spawnYOffset = -300,
+            --     spawnRoll = 32768
+            -- },
+            -- {
+            --     name = "LLL Tilting pyramid",
+            --     model = E_MODEL_LLL_TILTING_SQUARE_PLATFORM,
+            --     behavior = id_bhvLllTiltingInvertedPyramid,
+            --     spawnYOffset = -300,
+            --     spawnRoll = 32768
+            -- },
         },
     },
     {
