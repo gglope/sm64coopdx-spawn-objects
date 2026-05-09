@@ -64,3 +64,22 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     end
 end)
 
+
+-- Detect if an obj is Mario
+local isMarioObj = false
+for i = 0, MAX_PLAYERS - 1 do
+    if gMarioStates[i] and gMarioStates[i].marioObj == obj then
+        isMarioObj = true
+        break
+    end
+end
+
+-- Detect if object is door (covers normal doors, warp doors, star doors, basement door, etc.)
+local isDoor = false
+if not isMarioObj and isDeletable then
+    -- local bhv = obj.behavior
+    if obj.oInteractType == INTERACT_DOOR or obj.oInteractType == INTERACT_WARP_DOOR then
+        isDoor = true
+    end
+end
+

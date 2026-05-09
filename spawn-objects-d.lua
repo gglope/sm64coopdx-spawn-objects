@@ -1,4 +1,4 @@
--- name: Spawn Objects D (beta testing)
+-- name: Spawn Objects D (beta)
 -- description: Spawn and delete objects
 --
 -- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
@@ -429,7 +429,7 @@ local categories = {
                 model = E_MODEL_DDD_BOWSER_SUB,
                 name = "Submarine",
                 spawnOffset = 1800,
-                spawnYOffset = -1000,
+                spawnYOffset = -600,
                 spawnLateralOffset = 4000,
             },
         },
@@ -682,7 +682,7 @@ local categories = {
             { behavior = id_bhvJumpingBox, model = E_MODEL_BREAKABLE_BOX_SMALL, name = "Jumping Box" },
             { behavior = id_bhvWhirlpool, model = E_MODEL_DL_WHIRLPOOL, name = "Whirlpool" },
             { behavior = id_bhvSLWalkingPenguin, model = E_MODEL_PENGUIN, name = "Walking Penguin" },
-            { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby },
+            { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby, param2nd = 1 },
             { behavior = id_bhvUkiki, model = E_MODEL_UKIKI, name = "Monkey" },
             { name = "Monkey Macro", model = E_MODEL_UKIKI, behavior = id_bhvMacroUkiki },
             -- Commented because this is already part of "Sinking cage platform"
@@ -1225,55 +1225,27 @@ local function find_nearest_object(m)
     for _, list in ipairs(lists) do
         local obj = obj_get_first(list)
         while obj ~= nil do
-            -- Skip any player's Mario object
-            local isMarioObj = false
-            for i = 0, MAX_PLAYERS - 1 do
-                if gMarioStates[i] and gMarioStates[i].marioObj == obj then
-                    isMarioObj = true
-                    break
-                end
-            end
-
-            -- Only objects spawned using the mod are deletable.
-            -- This is because vanilla objects can't be identified, unless all
-            -- vanilla objects also get an ID assigned
-            local isDeletable = false
-            if not isMarioObj and obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
-                isDeletable = true
-            end
-
-            -- Skip ALL doors (covers normal doors, warp doors, star doors, basement door, etc.)
-            local isDoor = false
-            if not isMarioObj and isDeletable then
-                -- local bhv = obj.behavior
-                if obj.oInteractType == INTERACT_DOOR or obj.oInteractType == INTERACT_WARP_DOOR then
-                    isDoor = true
-                end
-            end
-
             -- TODO: This only works if the Mario who deletes is interacting,
             -- while commented code below for anyone. Anyway delete is already
             -- too heavy, so i would like not to use the code below if possible
             -- ACT_TALKING does not solve problems with conversations
             -- Not allowed to delete the object whose Mario is interacting (Shells, Poles, Trees etc.)
             local isInteracting = false
-            if not isMarioObj and isDeletable and not isDoor then
-                if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
-                    isInteracting = true
-                elseif
-                    (obj == m.interactObj or obj == m.usedObj)
-                    and (
-                        (m.action & ACT_FLAG_ON_POLE) ~= 0
-                        or (m.action & ACT_FLAG_HANGING) ~= 0
-                        or m.action == ACT_READING_NPC_DIALOG
-                        or m.action == ACT_WAITING_FOR_DIALOG
-                        or m.action == ACT_READING_AUTOMATIC_DIALOG
-                        or m.action == ACT_READING_SIGN
-                        or m.action == ACT_IN_CANNON
-                    )
-                then
-                    isInteracting = true
-                end
+            if obj == m.riddenObj or obj == m.heldObj or obj == m.heldByObj then
+                isInteracting = true
+            elseif
+                (obj == m.interactObj or obj == m.usedObj)
+                and (
+                    (m.action & ACT_FLAG_ON_POLE) ~= 0
+                    or (m.action & ACT_FLAG_HANGING) ~= 0
+                    or m.action == ACT_READING_NPC_DIALOG
+                    or m.action == ACT_WAITING_FOR_DIALOG
+                    or m.action == ACT_READING_AUTOMATIC_DIALOG
+                    or m.action == ACT_READING_SIGN
+                    or m.action == ACT_IN_CANNON
+                )
+            then
+                isInteracting = true
             end
             --if not isMarioObj and not isDoor then
             --  local isInteracting = false
@@ -1300,9 +1272,14 @@ local function find_nearest_object(m)
             --      end
             --  end
             --end
+            --
 
-            -- if not isMarioObj and not isDoor and not isInteracting then
-            if not isMarioObj and not isDoor and isDeletable and not isInteracting then
+
+            -- Only objects spawned using the mod are deletable.
+            -- This is because vanilla objects can't be identified, unless all
+            -- vanilla objects also get an ID assigned
+            -- if not isMarioObj and not isDoor and isDeletable and not isInteracting then
+            if obj.oModPlayerId > 0 and obj.oModObjNum > 0 and not isInteracting then
                 local dx = obj.oPosX - m.pos.x
                 local dy = obj.oPosY - m.pos.y
                 local dz = obj.oPosZ - m.pos.z
@@ -1319,9 +1296,6 @@ local function find_nearest_object(m)
     -- children table is needed because, if for example i delete the wheel of a
     -- ferris wheel, the orphaned platforms will start attaching to Mario not
     -- having a parent object anymore
-    --
-    -- Despite this mechanism, for some object like rotating block with flames,
-    -- the flames will still live after the center is deleted
     local children = {} -- holds all children of the nearest object
     for _, list in ipairs(lists) do
         local obj = obj_get_first(list)
@@ -1659,8 +1633,8 @@ function fix_snow_mound_loop(o)
         local speed = 40.0
         o.oVelX = speed * sins(yaw)
         o.oVelZ = speed * coss(yaw)
-        o.oPosX = o.oPosX + o.oVelX
-        o.oPosZ = o.oPosZ + o.oVelZ
+        -- o.oPosX = o.oPosX + o.oVelX
+        -- o.oPosZ = o.oPosZ + o.oVelZ
 
         if o.oTimer > 117 then
             o.oAction = 1
@@ -1671,16 +1645,16 @@ function fix_snow_mound_loop(o)
         o.oVelZ = speed * coss(yaw)
         o.oVelY = -10.0
 
-        o.oPosX = o.oPosX + o.oVelX
-        o.oPosZ = o.oPosZ + o.oVelZ
-        o.oPosY = o.oPosY + o.oVelY
+        -- o.oPosX = o.oPosX + o.oVelX
+        -- o.oPosZ = o.oPosZ + o.oVelZ
+        -- o.oPosY = o.oPosY + o.oVelY
 
         if o.oTimer > 50 then
             o.activeFlags = ACTIVE_FLAG_DEACTIVATED
         end
     end
 
-    -- cur_obj_move_using_vel()
+    cur_obj_move_using_vel()
     load_object_collision_model()
 end
 -- hook_behavior(id_bhvSlidingSnowMound, OBJ_LIST_SURFACE, true, nil, fix_snow_mound_loop)
