@@ -379,7 +379,7 @@ local categories = {
                 behavior = id_bhvBowsersSub,
                 model = E_MODEL_DDD_BOWSER_SUB,
                 name = "Submarine (perpendicular)",
-                spawnOffset = 1800,
+                spawnOffset = 1600,
                 spawnYOffset = -600,
                 spawnLateralOffset = 4000,
             },
