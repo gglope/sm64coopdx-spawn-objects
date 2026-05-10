@@ -4,7 +4,7 @@
 -- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
 -- the one already spawned with the map
 -- - Submarine center is at the right of visible object position, so a special
--- function is needed for it or the model needs fixing in blender
+-- function is needed to delete it
 
 -- Parameters
 local COOLDOWN_FRAMES = 50
@@ -102,7 +102,7 @@ local categories = {
                 name = "WDW (NON)rotating platform",
                 model = E_MODEL_WDW_ROTATING_PLATFORM,
                 behavior = id_bhvRotatingPlatform,
-                spawnYOffset = -400,
+                spawnYOffset = -250,
                 param2nd = 1
             },
             {
@@ -361,12 +361,6 @@ local categories = {
                 spawnYaw = 16384,
             },
             {
-                name = "Merry go round",
-                model = E_MODEL_BBH_MERRY_GO_ROUND,
-                behavior = id_bhvMerryGoRound,
-                spawnOffset = 300,
-            },
-            {
                 behavior = id_bhvSquishablePlatform,
                 model = E_MODEL_BITFS_STRETCHING_PLATFORMS,
                 name = "Stretching Platforms",
@@ -374,7 +368,31 @@ local categories = {
                 spawnYOffset = -120,
                 spawnYaw = 16384,
             },
+            {
+                name = "Merry go round",
+                model = E_MODEL_BBH_MERRY_GO_ROUND,
+                behavior = id_bhvMerryGoRound,
+                spawnOffset = 300,
+            },
             -- {name = "Koopa race endpoint", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaRaceEndpoint},
+            {
+                behavior = id_bhvBowsersSub,
+                model = E_MODEL_DDD_BOWSER_SUB,
+                name = "Submarine (perpendicular)",
+                spawnOffset = 1800,
+                spawnYOffset = -600,
+                spawnLateralOffset = 4000,
+            },
+            {
+                behavior = id_bhvBowsersSub,
+                model = E_MODEL_DDD_BOWSER_SUB,
+                name = "Submarine (parallel)",
+                spawnOffset = 1800,
+                spawnYOffset = -600,
+                spawnYaw = 16384,
+                spawnOffset = 4200,
+                spawnLateralOffset = 300,
+            },
             {
                 behavior = id_bhvLllRotatingHexagonalRing,
                 model = E_MODEL_LLL_ROTATING_HEXAGONAL_RING,
@@ -387,15 +405,8 @@ local categories = {
                 spawnOffset = -1000,
                 spawnYOffset = -400,
             },
-            -- Need to fix it's center in blender
-            {
-                behavior = id_bhvBowsersSub,
-                model = E_MODEL_DDD_BOWSER_SUB,
-                name = "Submarine",
-                spawnOffset = 1800,
-                spawnYOffset = -1000,
-                spawnLateralOffset = 4000,
-            },
+            -- This object is too big
+            -- {name = "Bowser arena", model = E_MODEL_BOWSER_2_TILTING_ARENA, behavior = id_bhvTiltingBowserLavaPlatform, spawnYOffset = -1200},
         },
     },
     {
@@ -519,7 +530,7 @@ local categories = {
             { name = "Bowser flame", model = E_MODEL_RED_FLAME, behavior = id_bhvFlameBowser },
             { name = "Bouncing fireball spawn", behavior = id_bhvBouncingFireball, model = E_MODEL_STAR, spawnYOffset = 100 },
             -- {name = "Bouncing fireball flame", behavior = id_bhvBouncingFireballFlame, model = E_MODEL_RED_FLAME},
-            -- {name = "Moving flames", behavior = id_bhvBetaMovingFlames, model = E_MODEL_RED_FLAME},
+            -- {name = "Moving flames", behavior = id_bhvBetaMovingFlames, model = E_MODEL_RED_FLAME, spawnYOffset = 150},
             -- {name = "Flame bouncing", model = E_MODEL_RED_FLAME, behavior = id_bhvFlameBouncing},
             {
                 name = "Flame moving forward growing",
@@ -646,7 +657,7 @@ local categories = {
             { behavior = id_bhvJumpingBox, model = E_MODEL_BREAKABLE_BOX_SMALL, name = "Jumping Box" },
             { behavior = id_bhvWhirlpool, model = E_MODEL_DL_WHIRLPOOL, name = "Whirlpool" },
             { behavior = id_bhvSLWalkingPenguin, model = E_MODEL_PENGUIN, name = "Walking Penguin" },
-            { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby },
+            { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby, param2nd = 1 },
             { behavior = id_bhvUkiki, model = E_MODEL_UKIKI, name = "Monkey" },
             { name = "Monkey Macro", model = E_MODEL_UKIKI, behavior = id_bhvMacroUkiki },
             -- Commented because this is already part of "Sinking cage platform"
@@ -1017,12 +1028,12 @@ function spawn_selected(m)
     local baseOffset = obj.spawnOffset or 200
     local forwardVel = m.forwardVel or 0
     local speedBonus = math.max(0, forwardVel) * SPEED_MULTIPLIER
-    local effectiveOffset = baseOffset + speedBonus
+    local finalOffset = baseOffset + speedBonus
 
     local lateralOffset = obj.spawnLateralOffset or 0
-    local spawnX = m.pos.x + effectiveOffset * sins(m.faceAngle.y) - lateralOffset * coss(m.faceAngle.y) -- lateral component
+    local spawnX = m.pos.x + finalOffset * sins(m.faceAngle.y) - lateralOffset * coss(m.faceAngle.y) -- lateral component
     local spawnY = m.pos.y + (obj.spawnYOffset or 0)
-    local spawnZ = m.pos.z + effectiveOffset * coss(m.faceAngle.y) + lateralOffset * sins(m.faceAngle.y)
+    local spawnZ = m.pos.z + finalOffset * coss(m.faceAngle.y) + lateralOffset * sins(m.faceAngle.y)
 
     -- local finalYaw = (m.faceAngle.y + (obj.spawnYaw or 0)) % 0x10000
     local finalYaw = m.faceAngle.y + (obj.spawnYaw or 0)
@@ -1322,8 +1333,8 @@ function fix_snow_mound_loop(o)
         local speed = 40.0
         o.oVelX = speed * sins(yaw)
         o.oVelZ = speed * coss(yaw)
-        o.oPosX = o.oPosX + o.oVelX
-        o.oPosZ = o.oPosZ + o.oVelZ
+        -- o.oPosX = o.oPosX + o.oVelX
+        -- o.oPosZ = o.oPosZ + o.oVelZ
 
         if o.oTimer > 117 then
             o.oAction = 1
@@ -1334,17 +1345,41 @@ function fix_snow_mound_loop(o)
         o.oVelZ = speed * coss(yaw)
         o.oVelY = -10.0
 
-        o.oPosX = o.oPosX + o.oVelX
-        o.oPosZ = o.oPosZ + o.oVelZ
-        o.oPosY = o.oPosY + o.oVelY
+        -- o.oPosX = o.oPosX + o.oVelX
+        -- o.oPosZ = o.oPosZ + o.oVelZ
+        -- o.oPosY = o.oPosY + o.oVelY
 
         if o.oTimer > 50 then
             o.activeFlags = ACTIVE_FLAG_DEACTIVATED
         end
     end
 
-    -- cur_obj_move_using_vel()
+    cur_obj_move_using_vel()
     load_object_collision_model()
 end
 -- hook_behavior(id_bhvSlidingSnowMound, OBJ_LIST_SURFACE, true, nil, fix_snow_mound_loop)
 hook_behavior(id_bhvSlidingSnowMound, OBJ_LIST_SURFACE, true, fix_snow_mound_init, fix_snow_mound_loop)
+
+
+-- Submarine gets deleted automatically when these conditions are met:
+-- if (save_file_get_flags() & (SAVE_FLAG_HAVE_KEY_2 | SAVE_FLAG_UNLOCKED_UPSTAIRS_DOOR))
+-- so here we tell do check to condition only if the object is not vanilla
+-- beh file: ddd_sub.inc.c
+function fix_submarine_init(o)
+    o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+    -- Object intangible is collisionData not declared (don't know why)
+    o.collisionData = gGlobalObjectCollisionData.ddd_seg7_collision_submarine
+    o.oCollisionDistance = 20000
+    -- o.oFlags = OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE | OBJ_FLAG_ACTIVE_FROM_AFAR
+end
+hook_behavior(id_bhvBowsersSub, OBJ_LIST_SURFACE, true, fix_submarine_init, function(o)
+    -- hook only applies to mod spawned objects
+    if o.oModPlayerId == 0 and o.oModObjNum == 0 then
+      -- TODO: Should verify if this if works with the real submarine in DDD
+      if save_file_get_flags() & (SAVE_FLAG_HAVE_KEY_2 | SAVE_FLAG_UNLOCKED_UPSTAIRS_DOOR) ~= 0 then
+        obj_mark_for_deletion(o)
+      end
+    end
+
+    load_object_collision_model()
+end)
