@@ -556,7 +556,7 @@ local categories = {
         items = {
             -- { behavior = id_bhvMontyMoleRock, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
             -- { behavior = id_bhvFlameBowser, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
-            { name = "Snufit ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvSnufitBalls, spawnOffset = 100},
+            { name = "Snufit ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvSnufitBalls, spawnOffset = 100, spawnYOffset = 80},
             { name = "Snow mound", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384},
             { name = "Snow mound pushing you", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384, spawnOffset = -300},
             { behavior = id_bhvBowserShockWave, model = E_MODEL_BOWSER_WAVE, name = "Shockwave", spawnOffset = 0 },

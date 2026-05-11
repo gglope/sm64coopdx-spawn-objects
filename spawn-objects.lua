@@ -520,13 +520,14 @@ local categories = {
         items = {
             -- { behavior = id_bhvMontyMoleRock, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
             -- { behavior = id_bhvFlameBowser, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
+            { name = "Snufit ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvSnufitBalls, spawnOffset = 100, spawnYOffset = 80},
             { name = "Snow mound", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384},
             { name = "Snow mound pushing you", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384, spawnOffset = -300},
             { behavior = id_bhvBowserShockWave, model = E_MODEL_BOWSER_WAVE, name = "Shockwave", spawnOffset = 0 },
             { name = "Explosion", behavior = id_bhvExplosion, model = E_MODEL_EXPLOSION, spawnOffset = 400 },
             { behavior = id_bhvFlame, model = E_MODEL_RED_FLAME, name = "Red Flame", spawnOffset = 200, spawnYOffset = 100},
             { name = "Blue flame", model = E_MODEL_BLUE_FLAME, behavior = id_bhvFlame, spawnYOffset = 100},
-            { name = "Bowser bomb", behavior = id_bhvBowserBomb, model = E_MODEL_BOWSER_BOMB, spawnYOffset = 200 },
+            { behavior = id_bhvBigBoulder, model = E_MODEL_HMC_ROLLING_ROCK, name = "Boulder", spawnOffset = 450, param2nd = 2 },
             { name = "Bowser flame", model = E_MODEL_RED_FLAME, behavior = id_bhvFlameBowser },
             { name = "Bouncing fireball spawn", behavior = id_bhvBouncingFireball, model = E_MODEL_STAR, spawnYOffset = 100 },
             -- {name = "Bouncing fireball flame", behavior = id_bhvBouncingFireballFlame, model = E_MODEL_RED_FLAME},
@@ -545,6 +546,7 @@ local categories = {
             { behavior = id_bhvFireSpitter, model = E_MODEL_BOWLING_BALL, name = "Fire Spitter", spawnOffset = 200, spawnYOffset = 50 },
             { behavior = id_bhvCirclingAmp, model = E_MODEL_AMP, name = "Circling Amp", spawnOffset = 0, spawnYOffset = 50 },
             { behavior = id_bhvHomingAmp, model = E_MODEL_AMP, name = "Homing Amp", spawnOffset = 300, spawnYOffset = 50 },
+            { name = "Bowser bomb", behavior = id_bhvBowserBomb, model = E_MODEL_BOWSER_BOMB, spawnYOffset = 200 },
             { behavior = id_bhvBowlingBall, model = E_MODEL_BOWLING_BALL, name = "Bowling Ball", spawnOffset = 300 },
             { name = "Bowling ball pit", model = E_MODEL_BOWLING_BALL, behavior = id_bhvPitBowlingBall },
             {
@@ -553,14 +555,13 @@ local categories = {
                 behavior = id_bhvThiBowlingBallSpawner,
                 spawnYOffset = 150,
             },
-            { name = "Grindel", model = E_MODEL_SSL_GRINDEL, behavior = id_bhvGrindel },
+            { name = "Grindel", model = E_MODEL_SSL_GRINDEL, behavior = id_bhvGrindel, spawnOffset = 300 },
             {
                 behavior = id_bhvHorizontalGrindel,
                 model = E_MODEL_SSL_GRINDEL,
                 name = "Moving grindel",
                 spawnOffset = 400,
             },
-            { behavior = id_bhvBigBoulder, model = E_MODEL_HMC_ROLLING_ROCK, name = "Boulder", spawnOffset = 450 },
             { behavior = id_bhvBulletBill, model = E_MODEL_BULLET_BILL, name = "Bullet Bill spawn", spawnOffset = 400, spawnYOffset = 110 },
             { behavior = id_bhvLllVolcanoFallingTrap, model = E_MODEL_LLL_VOLCANO_FALLING_TRAP, name = "Wall Trap" },
             { model = E_MODEL_HAUNTED_CHAIR, behavior = id_bhvHauntedChair, name = "Haunted chair", spawnOffset = 300 },
@@ -628,7 +629,7 @@ local categories = {
             {
                 behavior = id_bhvBigBully,
                 model = E_MODEL_BULLY_BOSS,
-                name = "Big Bully",
+                name = "Bully boss",
                 spawnOffset = 400,
                 spawnYaw = 32768,
                 spawnPitch = 0,
@@ -636,8 +637,8 @@ local categories = {
             },
             -- {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
             -- { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
-            { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser" },
-            { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2 },
+            { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser", param2nd = 1 },
+            { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2, param2nd = 1},
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
             { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Balcony big boo", spawnOffset = 300 },
             -- Appears small
@@ -675,19 +676,20 @@ local categories = {
                 spawnOffset = 0,
                 spawnYOffset = -200,
             },
-            {
-                name = "Switch animates object",
-                model = E_MODEL_PURPLE_SWITCH,
-                behavior = id_bhvFloorSwitchAnimatesObject,
-            },
-            { name = "Switch grills", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvFloorSwitchGrills },
-            { name = "Switch hardcoded", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvFloorSwitchHardcodedModel },
-            {
-                name = "Switch hidden objects",
-                model = E_MODEL_PURPLE_SWITCH,
-                behavior = id_bhvFloorSwitchHiddenObjects,
-            },
-            { name = "Switch hidden boxes", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvPurpleSwitchHiddenBoxes },
+            -- USELESS
+            -- {
+            --     name = "Switch animates object",
+            --     model = E_MODEL_PURPLE_SWITCH,
+            --     behavior = id_bhvFloorSwitchAnimatesObject,
+            -- },
+            -- { name = "Switch grills", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvFloorSwitchGrills },
+            -- { name = "Switch hardcoded", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvFloorSwitchHardcodedModel },
+            -- {
+            --     name = "Switch hidden objects",
+            --     model = E_MODEL_PURPLE_SWITCH,
+            --     behavior = id_bhvFloorSwitchHiddenObjects,
+            -- },
+            -- { name = "Switch hidden boxes", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvPurpleSwitchHiddenBoxes },
             { name = "Cap switch base", behavior = id_bhvCapSwitchBase, model = E_MODEL_CAP_SWITCH_BASE },
             -- XXX: Exclamation boxes spawns, for a reason or another, are very heavy
             -- computationally, and it gets worse the more there are. Commented
@@ -711,7 +713,7 @@ local categories = {
                 model = E_MODEL_LLL_SINKING_ROCK_BLOCK,
                 behavior = id_bhvLllSinkingRockBlock,
                 spawnOffset = 200,
-                spawnYOffset = -200,
+                spawnYOffset = 50,
                 spawnPitch = 16384,
                 spawnRoll = 32768,
             },
@@ -900,6 +902,7 @@ local categories = {
             --     spawnOffset = 100,
             --     spawnYOffset = -150,
             -- },
+           {name = "TTC_ROTATING_TRIANGLE", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid},
             -- Fix direction, also always goes same direction
             { name = "SPINDEL", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
             {
