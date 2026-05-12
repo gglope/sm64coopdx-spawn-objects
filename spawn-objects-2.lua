@@ -1,5 +1,5 @@
--- name: Spawn Objects (beta)
--- description: Spawn objects
+-- name: Spawn Objects 2 (beta)
+-- description: Spawn objects. Only 2 D-PAD buttons mapped
 --
 -- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
 -- the one already spawned with the map
