@@ -1,5 +1,5 @@
--- name: Spawn Objects D (beta)
--- description: Spawn and delete objects
+-- name: Spawn Objects 2D (beta)
+-- description: Spawn and delete objects. Only 2 D-PAD buttons mapped
 --
 -- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
 -- the one already spawned with the map
@@ -975,13 +975,8 @@ end
 -- Menu navigation
 function move_selection(m)
     local buttons = m.controller.buttonPressed
-    if buttons & U_JPAD ~= 0 then
-        if inSubmenu then
-            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) - 1
-        else
-            selectedCategory = selectedCategory - 1
-        end
-    elseif buttons & D_JPAD ~= 0 then
+
+    if buttons & R_JPAD ~= 0 then
         if inSubmenu then
             selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 1
         else
@@ -995,27 +990,14 @@ function move_selection(m)
         else
             selectedCategory = selectedCategory - 1
         end
-    elseif buttons & R_JPAD ~= 0 then
-        if not inSubmenu then
-            inSubmenu = true
-            if not selectedObjectInCat[selectedCategory] then
-                selectedObjectInCat[selectedCategory] = 1
-            end
-            play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
-            return
-        else
-            -- This commmented code is for submenu change on DRAD right press.
-            -- I prefer to advance 5 elements instead
-            -- -- next category while in submenu
-            -- selectedCategory = selectedCategory + 1
-            -- if selectedCategory > #categories then
-            --     selectedCategory = 1
-            -- end
-            -- if not selectedObjectInCat[selectedCategory] then
-            --     selectedObjectInCat[selectedCategory] = 1
-            -- end
-            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 5
+    elseif buttons & X_BUTTON ~= 0 and not inSubmenu then
+        -- X button now enters the submenu (from main menu only)
+        inSubmenu = true
+        if not selectedObjectInCat[selectedCategory] then
+            selectedObjectInCat[selectedCategory] = 1
         end
+        play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+        return
     else
         return
     end
@@ -1583,8 +1565,9 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     -- Y-button deletion
     handle_object_deletion(m)
 
-    move_selection(m)
+    -- Inverted because we don't want a button to do bot enter submenu and spawn object together
     spawn_selected(m)
+    move_selection(m)
 end)
 
 -- Gives ferris wheel the blue platform instead of error model
