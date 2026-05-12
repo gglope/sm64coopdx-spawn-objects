@@ -2,10 +2,6 @@
 -- description: When time goes to zero a random powerup spawns
 -- TODO: Si può aggiungere codice da shrink mario come powerups. Togliere però che non si può dare calcio ecc.
 
-local vowels = {
-    ["A"] = true, ["E"] = true, ["I"] = true, ["O"] = true, ["U"] = true
-}
-
 local randomObjects = {
     { behavior = id_bhvKoopaShell,      model = E_MODEL_KOOPA_SHELL,                 name = "Shell" },
     { behavior = id_bhvRecoveryHeart,   model = E_MODEL_HEART,                       name = "Recovery Heart" },
@@ -31,7 +27,7 @@ local randomObjects = {
     { behavior = id_bhvFlame,               model = E_MODEL_RED_FLAME,           name = "Flame" }
 }
 
--- Per-player data (local only)
+-- Per-player data
 local playerData = {}
 
 function init_player_data(m)
@@ -68,13 +64,7 @@ function update_random_objects()
             nil
         )
 
-        if name:sub(#name) == "s" then
-            djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
-        elseif vowels[name:sub(1,1)] then
-            djui_popup_create("Spawned an \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
-        else
-            djui_popup_create("Spawned a \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
-        end
+        djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 
         -- Reset timer
         -- data.timer = 40 * 30

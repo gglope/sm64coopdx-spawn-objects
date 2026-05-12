@@ -1,12 +1,10 @@
 # Intro
 
-THIS MOD IS STILL IN DEVELOPMENT.
-
-Spawn objects from a categorized menu and delete nearest object. Depending on the script version more functions are available (for example save and persistence).
+Spawn objects from a categorized menu and delete nearest object. Objects spawn position is decided by the script. Depending on the script version more functions are available (for example save and persistence).
 
 # Which one to choose
 
-Scripts that work (with some bug)(all others do not work):
+Scripts that work (with some bug), only download one of these:
 
 - spawn-objects.lua
 - spawn-objects-d.lua
@@ -15,9 +13,7 @@ The versions can be identified by the letters in the script name:
 
 - **no letter**: standard version, only allows objects spawn, no delete, no save, no persistence
 - **d** : includes `delete nearest object` feature
-- **ss**: includes `save map` feature to let players save spawned objects. Spawned object are NOT tracked, so persistence is not included
-- **sp** : includes `save map` feature by tracking the spawned objects, and persistence (object don't get lost when all players leave a map)
-- **arena**: specialized for use with arena mod
+- **2** : in this version D-PAD up and down are not used by the script, so that the user can combine this mod with other mods that use D-PAD up and down (e.g. checkpoints). Spawn menu is traversed by only using D-PAD left and right and the X button
 
 # Bugs
 
@@ -30,9 +26,9 @@ The versions can be identified by the letters in the script name:
 - X: spawn
 - Y: delete nearest object
 - /respawn to respawn when Mario gets stuck for any reason
-- /savemap to save all the spawned objects from every player
-- /loadmap (host only) to load saved map
 - /clearall (host only) delete all mod spawned objects
+- ~~/savemap to save all the spawned objects from every player~~
+- ~~/loadmap (host only) to load saved map~~
 
 # Settings
 
@@ -82,7 +78,14 @@ Other:
 
 - One can choose to keep the table of objects only on the host device, but this means that everytime a player enters a level visited before, the host would be forced to send the entire list of objects on that level to the player who is entering it, in order for him to restore the objects
 
-Links
+# Links
 
 - gGlobalObjectCollisionData: https://github.com/coop-deluxe/sm64coopdx/blob/main/docs/lua/structs.md#GlobalObjectCollisionData
+- James S' Kingdom beh values: https://sites.google.com/site/jamesskingdom/Home/video-game-secrets-by-james-s/super-mario-64-exposed/sm64-exposed-behaviour-values
+
+# Future development (maybe)
+
+- **ss**: includes `save map` feature to let players save spawned objects. Spawned object are NOT tracked, so persistence is not included
+- **sp** : includes `save map` feature by tracking the spawned objects, and persistence (object don't get lost when all players leave a map)
+- **arena**: specialized for use with arena mod
 
