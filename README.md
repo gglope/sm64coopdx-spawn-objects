@@ -4,11 +4,6 @@ Spawn objects from a categorized menu and delete nearest object. Objects spawn p
 
 # Which one to choose
 
-Scripts that work (with some bug), only download one of these:
-
-- spawn-objects.lua
-- spawn-objects-d.lua
-
 The versions can be identified by the letters in the script name:
 
 - **no letter**: standard version, only allows objects spawn, no delete, no save, no persistence
