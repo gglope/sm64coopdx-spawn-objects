@@ -441,8 +441,6 @@ local categories = {
                 spawnOffset = -1000,
                 spawnYOffset = -400,
             },
-            -- This object is too big
-            -- {name = "Bowser arena", model = E_MODEL_BOWSER_2_TILTING_ARENA, behavior = id_bhvTiltingBowserLavaPlatform, spawnYOffset = -1200},
         },
     },
     {
@@ -671,8 +669,6 @@ local categories = {
                 spawnPitch = 0,
                 spawnRoll = 0,
             },
-            -- {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
-            -- { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
             { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser", param2nd = 1 },
             { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2, param2nd = 1},
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
@@ -828,7 +824,6 @@ local categories = {
             -- Commented because it just flies outside of the map
             -- { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
             { name = "Castle flag", behavior = id_bhvCastleFlagWaving, model = E_MODEL_CASTLE_GROUNDS_FLAG },
-            -- {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
             -- {name = "Fish group", model = E_MODEL_FISH, behavior = id_bhvFishGroup},
             { behavior = id_bhvButterfly, model = E_MODEL_BUTTERFLY, name = "Butterfly" },
             { name = "Hexagon", model = E_MODEL_LLL_ROTATING_HEXAGONAL_RING, behavior = id_bhvLllHexagonalMesh },
@@ -883,13 +878,6 @@ local categories = {
             { name = "Boo key", behavior = id_bhvAlphaBooKey, model = E_MODEL_BETA_BOO_KEY },
             { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star", spawnYOffset = 100 },
             { name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel, spawnYaw = 32768},
-            {
-                name = "Wind Snowman Head",
-                model = E_MODEL_CCM_SNOWMAN_HEAD,
-                behavior = id_bhvSLSnowmanWind,
-                spawnOffset = 300,
-                spawnYOffset = 200,
-            },
             {
                 name = "Cannonless wall left",
                 model = E_MODEL_WF_BREAKABLE_WALL_LEFT,
@@ -956,6 +944,26 @@ local categories = {
         },
     },
 }
+
+-- Host-only objects
+if network_is_server() then
+  table.insert(categories, {
+    name = "Host only",
+    items = {
+      {name = "Bowser arena", model = E_MODEL_BOWSER_2_TILTING_ARENA, behavior = id_bhvTiltingBowserLavaPlatform, spawnYOffset = -1200},
+      {
+          name = "Snowman Head",
+          model = E_MODEL_CCM_SNOWMAN_HEAD,
+          behavior = id_bhvSLSnowmanWind,
+          spawnOffset = 300,
+          spawnYOffset = 200,
+      },
+      {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
+      { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
+      {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
+    }
+  })
+end
 
 local playerData = {}
 local selectedCategory = 1
@@ -1185,10 +1193,12 @@ function spawn_selected(m)
         -- o.oMoveAngleRoll = finalRoll
 
         -- o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
-
         -- Fixes cannon yaw
         if obj.behavior == id_bhvCannon then
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
+        -- Fixes Snowman head
+        elseif obj.behavior == id_bhvSLSnowmanWind then
+          o.oSubAction = SL_SNOWMAN_WIND_ACT_BLOWING
         else
             o.oBehParams2ndByte = obj.param2nd or 0
         end
