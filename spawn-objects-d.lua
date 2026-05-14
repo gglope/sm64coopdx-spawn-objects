@@ -6,9 +6,17 @@
 -- - Submarine center is at the right of visible object position, so a special
 -- function is needed to delete it
 
+
 -- Parameters
 local COOLDOWN_FRAMES = 50
-local COOLDOWN_FRAMES_DEL = 20
+
+local COOLDOWN_FRAMES_DEL
+if network_is_server() then
+  COOLDOWN_FRAMES_DEL = 10
+else
+  COOLDOWN_FRAMES_DEL = 20
+end
+
 local SPEED_MULTIPLIER = 5.0 -- Adjusts object spawn position based on Mario speed
 
 -- local TARGET_LEVEL = LEVEL_BOB
@@ -279,12 +287,13 @@ local categories = {
                 behavior = id_bhvSlidingPlatform2,
                 spawnYOffset = -300,
             },
-            {
-                name = "Sliding platform (RR)",
-                model = E_MODEL_RR_SLIDING_PLATFORM,
-                behavior = id_bhvSlidingPlatform2,
-                spawnYOffset = -300,
-            },
+            -- Bugged hitbox
+            -- {
+            --     name = "Sliding platform (RR)",
+            --     model = E_MODEL_RR_SLIDING_PLATFORM,
+            --     behavior = id_bhvSlidingPlatform2,
+            --     spawnYOffset = -300,
+            -- },
             {
                 name = "Tilting floor platform",
                 behavior = id_bhvBbhTiltingTrapPlatform,
@@ -328,11 +337,12 @@ local categories = {
                 spawnOffset = 300,
                 spawnYOffset = -200,
             },
-            {
-                name = "Sliding platform (WF)",
-                model = E_MODEL_WF_TOWER_SQUARE_PLATORM,
-                behavior = id_bhvWfSlidingPlatform,
-            },
+            -- Bugged, wrong hitbox
+            -- {
+            --     name = "Sliding platform (WF)",
+            --     model = E_MODEL_WF_TOWER_SQUARE_PLATORM,
+            --     behavior = id_bhvWfSlidingPlatform,
+            -- },
             { name = "Pillar base", model = E_MODEL_JRB_FALLING_PILLAR_BASE, behavior = id_bhvPillarBase },
             {
                 name = "THI island top",
@@ -372,11 +382,13 @@ local categories = {
                 behavior = id_bhvOctagonalPlatformRotating,
                 spawnYOffset = -300,
             },
+            -- TODO: to fix hitbox, need to change behParams
             {
                 name = "RR octagonal platform",
                 model = E_MODEL_RR_OCTAGONAL_PLATFORM,
                 behavior = id_bhvOctagonalPlatformRotating,
                 spawnYOffset = -300,
+                param2 = 1
             },
             {
                 name = "Seesaw S-shaped",
@@ -668,6 +680,7 @@ local categories = {
             { name = "Mole hole (spawn first)", model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole },
             { name = "Mole (spawn second)", model = E_MODEL_MONTY_MOLE, behavior = id_bhvMontyMole },
             { name = "Snowman", model = E_MODEL_MR_BLIZZARD, behavior = id_bhvMrBlizzard },
+            { name = "Pokey (bugged)", model = E_MODEL_POKEY_HEAD, behavior = id_bhvPokey },
         },
     },
     {
@@ -812,6 +825,16 @@ local categories = {
                 spawnYOffset = 0,
                 spawnRoll = 32768
             },
+            {
+                name = "T. Merry go round",
+                model = E_MODEL_BBH_MERRY_GO_ROUND,
+                behavior = id_bhvMerryGoRound,
+                spawnYaw = 32768,
+                spawnOffset = 300,
+                spawnYOffset = -350,
+                spawnLateralOffset = -30,
+                spawnPitch = 11500,
+            },
             -- NOT WORKING, roll gets reset
             -- {
             --     name = "Bitfs Tilting pyramid",
@@ -926,39 +949,6 @@ local categories = {
             -- { behavior = id_bhvToadMessage, model = E_MODEL_TOAD, name = "Toad"},
         },
     },
-    -- {
-    --     name = "New",
-    --     items = {
-    --     }
-    -- },
-    {
-        name = "Bugged",
-        items = {
-            -- Wrong hitbox
-            -- {
-            --     name = "Bitfs elevator (still)",
-            --     behavior = id_bhvActivatedBackAndForthPlatform,
-            --     model = E_MODEL_BITFS_ELEVATOR,
-            --     spawnOffset = 100,
-            --     spawnYOffset = -150,
-            -- },
-           {name = "TTC_ROTATING_TRIANGLE", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid},
-            -- Fix direction, also always goes same direction
-            { name = "SPINDEL", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
-            {
-                name = "WF_ROTATING_WOODEN_PLATFORM",
-                model = E_MODEL_ERROR_MODEL,
-                behavior = id_bhvWfRotatingWoodenPlatform,
-            },
-            { name = "WF_TUMBLING_BRIDGE", model = E_MODEL_ERROR_MODEL, behavior = id_bhvWfTumblingBridge },
-            {
-                name = "BITFS_TUMBLING_BRIDGE",
-                model = E_MODEL_BITFS_TUMBLING_PLATFORM,
-                behavior = id_bhvWfTumblingBridge,
-            },
-            { name = "POKEY", model = E_MODEL_POKEY_HEAD, behavior = id_bhvPokey },
-        },
-    },
 }
 
 -- Host-only objects
@@ -978,6 +968,20 @@ if network_is_server() then
       {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
       { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
       {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
+      {name = "Rotating triangle (bugged)", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid},
+      -- Fix direction, also always goes same direction
+      { name = "Spindel (bugged)", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
+      {
+          name = "Rotating wooden platform WF (bugged)",
+          model = E_MODEL_ERROR_MODEL,
+          behavior = id_bhvWfRotatingWoodenPlatform,
+      },
+      { name = "Tumbling bridge WF (bugged)", model = E_MODEL_ERROR_MODEL, behavior = id_bhvWfTumblingBridge },
+      {
+          name = "Tumbling bridge BITFS (bugged)",
+          model = E_MODEL_BITFS_TUMBLING_PLATFORM,
+          behavior = id_bhvWfTumblingBridge,
+      },
     }
   })
 end
@@ -1209,17 +1213,17 @@ function spawn_selected(m)
         o.header.gfx.angle.z = finalRoll
         -- o.oMoveAngleRoll = finalRoll
 
-        -- Fixes cannon yaw
-        if obj.behavior == id_bhvCannon then
-            o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
+        if obj.param2nd then
+            o.oBehParams2ndByte = obj.param2nd
+        elseif obj.param1 or obj.param2 or obj.param3 or obj.param4 then
+          o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
         elseif obj.oAction then
           o.oAction = obj.oAction
         elseif obj.oSubAction then
           o.oSubAction = obj.oSubAction
-        else
-            o.oBehParams2ndByte = obj.param2nd or 0
+        elseif obj.behavior == id_bhvCannon then  -- Fixes cannon yaw
+            o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
         end
-        -- o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
 
         o.oModPlayerId = gPlayerSyncTable[0].myPlayerId
         o.oModObjNum = next_object_id
@@ -1262,7 +1266,6 @@ end
 -- used by delete object
 local function find_nearest_object(m)
     local nearest = nil
-    -- local minDistSq = 1200 * 1200
     local minDistSq = 1600 * 1600
 
     for _, list in ipairs(lists) do
