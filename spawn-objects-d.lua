@@ -217,7 +217,21 @@ local categories = {
                 behavior = id_bhvKickableBoard,
                 model = E_MODEL_WF_KICKABLE_BOARD,
                 name = "Kickable Board",
-                spawnYOffset = -30,
+                -- spawnYOffset = -30,
+                spawnYaw = 32768,
+            },
+            {
+                behavior = id_bhvKickableBoard,
+                model = E_MODEL_WF_KICKABLE_BOARD,
+                name = "Kickable Board (kicked)",
+                oAction = 2,
+                spawnYaw = 32768,
+            },
+            {
+                behavior = id_bhvKickableBoard,
+                model = E_MODEL_WF_KICKABLE_BOARD,
+                name = "Kickable Board (unkickable)",
+                oAction = 3,
                 spawnYaw = 32768,
             },
             { name = "TTC treadmill", model = E_MODEL_TTC_LARGE_TREADMILL, behavior = id_bhvTTCTreadmill },
@@ -299,12 +313,6 @@ local categories = {
                 behavior = id_bhvWdwExpressElevatorPlatform,
                 spawnOffset = 0,
                 spawnYOffset = -200,
-            },
-            {
-                name = "Controllable platform",
-                behavior = id_bhvControllablePlatform,
-                model = E_MODEL_HMC_METAL_PLATFORM,
-                spawnYOffset = -100,
             },
             {
                 name = "Checkered platform",
@@ -433,6 +441,8 @@ local categories = {
                 behavior = id_bhvLllRotatingHexagonalRing,
                 model = E_MODEL_LLL_ROTATING_HEXAGONAL_RING,
                 name = "Rotating Hexagon (LLL)",
+                spawnOffset = 1600,
+                spawnYOffset = -300,
             },
             {
                 behavior = id_bhvDorrie,
@@ -494,6 +504,12 @@ local categories = {
                 model = E_MODEL_TTC_ELEVATOR_PLATFORM,
                 behavior = id_bhvTTCElevator,
                 spawnOffset = 0,
+                spawnYOffset = -100,
+            },
+            {
+                name = "Controllable platform",
+                behavior = id_bhvControllablePlatform,
+                model = E_MODEL_HMC_METAL_PLATFORM,
                 spawnYOffset = -100,
             },
             -- Disable because no one will use these
@@ -957,6 +973,7 @@ if network_is_server() then
           behavior = id_bhvSLSnowmanWind,
           spawnOffset = 300,
           spawnYOffset = 200,
+          oSubAction = SL_SNOWMAN_WIND_ACT_BLOWING
       },
       {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
       { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
@@ -1192,16 +1209,17 @@ function spawn_selected(m)
         o.header.gfx.angle.z = finalRoll
         -- o.oMoveAngleRoll = finalRoll
 
-        -- o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
         -- Fixes cannon yaw
         if obj.behavior == id_bhvCannon then
             o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
-        -- Fixes Snowman head
-        elseif obj.behavior == id_bhvSLSnowmanWind then
-          o.oSubAction = SL_SNOWMAN_WIND_ACT_BLOWING
+        elseif obj.oAction then
+          o.oAction = obj.oAction
+        elseif obj.oSubAction then
+          o.oSubAction = obj.oSubAction
         else
             o.oBehParams2ndByte = obj.param2nd or 0
         end
+        -- o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
 
         o.oModPlayerId = gPlayerSyncTable[0].myPlayerId
         o.oModObjNum = next_object_id
