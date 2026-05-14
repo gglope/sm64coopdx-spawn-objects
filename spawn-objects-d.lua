@@ -382,7 +382,6 @@ local categories = {
                 behavior = id_bhvOctagonalPlatformRotating,
                 spawnYOffset = -300,
             },
-            -- TODO: to fix hitbox, need to change behParams
             {
                 name = "RR octagonal platform",
                 model = E_MODEL_RR_OCTAGONAL_PLATFORM,
