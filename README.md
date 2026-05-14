@@ -1,10 +1,13 @@
 # Intro
 
-Spawn objects from a categorized menu and delete nearest object. Objects spawn position is decided by the script. Depending on the script version more functions are available (for example save and persistence).
+Spawn objects from a categorized menu and delete nearest object. Objects spawn position is decided by the script.
+Depending on the script version more functions are available.
 
 # Which one to choose
 
-The versions can be identified by the letters in the script name:
+I consider the "normal" version this one: `spawn-objects-d.lua`
+
+Other versions can be identified by the letters in the script name:
 
 - **no letter**: standard version, only allows objects spawn, no delete, no save, no persistence
 - **d** : includes `delete nearest object` feature
@@ -14,14 +17,31 @@ The versions can be identified by the letters in the script name:
 
 # Commands
 
-- D-PAD UP/DOWN: select next/previous element
-- D-PAD RIGHT in menu: go to selected submenu
-- D-PAD LEFT in submenu: return to main menu
-- D-PAD RIGHT in submenu: go to next submenu
-- X: spawn
+## All versions
+
 - Y: delete nearest object
 - /respawn to respawn when Mario gets stuck for any reason
 - /clearall (host only) delete all mod spawned objects
+
+## Versions without 2 in name
+
+- D-PAD UP/DOWN: select next/previous element
+- D-PAD RIGHT in menu: go to selected submenu
+- D-PAD LEFT in submenu: return to main menu
+- D-PAD RIGHT in submenu: jump 5 elements below
+- X: spawn selected object
+
+## Versions with 2 in name
+
+- D-PAD RIGHT in menu: select next element
+- D-PAD LEFT in menu: select previous element
+- D-PAD RIGHT in submenu: select next element
+- D-PAD LEFT in submenu: go back to main menu
+- X in menu: enter selected submenu
+- X in submenu: spawn selected object
+
+## Other
+
 - ~~/savemap to save all the spawned objects from every player~~
 - ~~/loadmap (host only) to load saved map~~
 
