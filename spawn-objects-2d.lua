@@ -675,7 +675,7 @@ local categories = {
             {name = "Bub", model = E_MODEL_BUB, behavior = id_bhvBub},
             { behavior = id_bhvClamShell, model = E_MODEL_CLAM_SHELL, name = "Clam Shell", spawnOffset = 400 },
             { behavior = id_bhvHeaveHo, model = E_MODEL_HEAVE_HO, name = "Heave-Ho", spawnOffset = 200 },
-            {name = "Mr I", model = E_MODEL_MR_I, behavior = id_bhvMrI},
+            {name = "Mr. I", model = E_MODEL_MR_I, behavior = id_bhvMrI},
             { name = "Skeeter", model = E_MODEL_SKEETER, behavior = id_bhvSkeeter, spawnOffset = 400 },
             { name = "Spindrift", model = E_MODEL_SPINDRIFT, behavior = id_bhvSpindrift },
             { name = "Book", model = E_MODEL_BOOKEND, behavior = id_bhvFlyingBookend },
@@ -704,6 +704,7 @@ local categories = {
             },
             { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser", param2nd = 1 },
             { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2, param2nd = 1},
+            {name = "Mr. I boss", model = E_MODEL_MR_I, behavior = id_bhvMrI, param2nd = 1},
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
             { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Balcony big boo", spawnOffset = 300 },
             -- Appears small
