@@ -377,13 +377,13 @@ local categories = {
                 behavior = id_bhvLllSinkingSquarePlatforms,
             },
             {
-                name = "Bits octagonal platform",
+                name = "Octagonal platform (Bits)",
                 model = E_MODEL_BITS_OCTAGONAL_PLATFORM,
                 behavior = id_bhvOctagonalPlatformRotating,
                 spawnYOffset = -300,
             },
             {
-                name = "RR octagonal platform",
+                name = "Octagonal platform (RR)",
                 model = E_MODEL_RR_OCTAGONAL_PLATFORM,
                 behavior = id_bhvOctagonalPlatformRotating,
                 spawnYOffset = -300,
@@ -581,11 +581,12 @@ local categories = {
         items = {
             -- { behavior = id_bhvMontyMoleRock, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
             -- { behavior = id_bhvFlameBowser, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
-            { name = "Snufit ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvSnufitBalls, spawnOffset = 100, spawnYOffset = 80},
             { name = "Snow mound", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384},
             { name = "Snow mound pushing you", model = E_MODEL_SL_SNOW_TRIANGLE, behavior = id_bhvSlidingSnowMound, spawnYaw = 16384, spawnOffset = -300},
             { behavior = id_bhvBowserShockWave, model = E_MODEL_BOWSER_WAVE, name = "Shockwave", spawnOffset = 0 },
             { name = "Explosion", behavior = id_bhvExplosion, model = E_MODEL_EXPLOSION, spawnOffset = 400 },
+            {name = "Wind particle (1)", model = E_MODEL_MIST, behavior = id_bhvStrongWindParticle},
+            { name = "Snufit ball (1)", model = E_MODEL_BOWLING_BALL, behavior = id_bhvSnufitBalls, spawnOffset = 100, spawnYOffset = 80},
             { behavior = id_bhvFlame, model = E_MODEL_RED_FLAME, name = "Red Flame", spawnOffset = 200, spawnYOffset = 100},
             { name = "Blue flame", model = E_MODEL_BLUE_FLAME, behavior = id_bhvFlame, spawnYOffset = 100},
             { behavior = id_bhvBigBoulder, model = E_MODEL_HMC_ROLLING_ROCK, name = "Boulder", spawnOffset = 450, param2nd = 2 },
@@ -655,6 +656,8 @@ local categories = {
             { behavior = id_bhvBobomb, model = E_MODEL_BOBOMB_BUDDY, name = "Bobomb Not-Buddy", spawnOffset = 200 },
             { behavior = id_bhvSmallBully, model = E_MODEL_BULLY, name = "Bully", spawnOffset = 100 },
             { name = "Piranha plant", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant },
+            { name = "Piranha plant fire (small)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant },
+            { name = "Piranha plant fire (big)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant, param2 = 1 },
             { behavior = id_bhvSmallWhomp, model = E_MODEL_WHOMP, name = "Whomp", spawnOffset = 200 },
             { behavior = id_bhvThwomp, model = E_MODEL_THWOMP, name = "Thwomp", spawnOffset = 300 },
             { behavior = id_bhvMadPiano, model = E_MODEL_MAD_PIANO, name = "Piano", spawnOffset = 300 },
@@ -669,8 +672,10 @@ local categories = {
             { behavior = id_bhvKlepto, model = E_MODEL_KLEPTO, name = "Vulture", spawnOffset = 300 },
             { behavior = id_bhvUnagi, model = E_MODEL_UNAGI, name = "Eel", spawnOffset = 300 },
             { behavior = id_bhvBubba, model = E_MODEL_BUBBA, name = "Bubba", spawnOffset = 300 },
+            {name = "Bub", model = E_MODEL_BUB, behavior = id_bhvBub},
             { behavior = id_bhvClamShell, model = E_MODEL_CLAM_SHELL, name = "Clam Shell", spawnOffset = 400 },
             { behavior = id_bhvHeaveHo, model = E_MODEL_HEAVE_HO, name = "Heave-Ho", spawnOffset = 200 },
+            {name = "Mr I", model = E_MODEL_MR_I, behavior = id_bhvMrI},
             { name = "Skeeter", model = E_MODEL_SKEETER, behavior = id_bhvSkeeter, spawnOffset = 400 },
             { name = "Spindrift", model = E_MODEL_SPINDRIFT, behavior = id_bhvSpindrift },
             { name = "Book", model = E_MODEL_BOOKEND, behavior = id_bhvFlyingBookend },
@@ -702,7 +707,6 @@ local categories = {
             -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
             { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Balcony big boo", spawnOffset = 300 },
             -- Appears small
-            -- { name = "Piranha plant (big)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant, param2nd = 1 },
         },
     },
     {
@@ -955,6 +959,8 @@ if network_is_server() then
   table.insert(categories, {
     name = "Host only",
     items = {
+      -- Makes the game lag
+      -- {name = "Pyramid wall", model = E_MODEL_SSL_MOVING_PYRAMID_WALL, behavior = id_bhvSslMovingPyramidWall, spawnYaw = 16384},
       {name = "Bowser arena", model = E_MODEL_BOWSER_2_TILTING_ARENA, behavior = id_bhvTiltingBowserLavaPlatform, spawnYOffset = -1200},
       {
           name = "Snowman Head",
@@ -981,6 +987,8 @@ if network_is_server() then
           model = E_MODEL_BITFS_TUMBLING_PLATFORM,
           behavior = id_bhvWfTumblingBridge,
       },
+      {name = "Floating wood bridge (bugged)", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
+      {name = "Floating wood bridge large (bugged)", model = E_MODEL_LLL_LARGE_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
     }
   })
 end
@@ -1635,17 +1643,21 @@ end
 -- hook_behavior(id_bhvCloud, OBJ_LIST_DEFAULT, false, fix_cloud, nil)
 hook_behavior(id_bhvCloudPart, OBJ_LIST_DEFAULT, false, fix_cloud, nil)
 
--- Fix Pokey
--- local function fix_pokey_head(obj)
---     obj_set_model_extended(obj, E_MODEL_POKEY_HEAD)
--- end
+-- TODO: no head, only body parts
 local function fix_pokey_body_part(obj)
     obj_set_model_extended(obj, E_MODEL_POKEY_BODY_PART)
 end
--- hook_behavior(id_bhvPokey, OBJ_LIST_GENACTOR, false, fix_pokey_head, nil)
--- hook_behavior(id_bhvPokey, OBJ_LIST_DEFAULT,  false, fix_pokey_head, nil)
 hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_GENACTOR, false, fix_pokey_body_part, nil)
--- hook_behavior(id_bhvPokeyBodyPart, OBJ_LIST_DEFAULT,  false, fix_pokey_body_part, nil)
+
+-- Fix Mr. I
+local function fix_mr_i_body(obj)
+    obj_set_model_extended(obj, E_MODEL_MR_I_IRIS)
+end
+hook_behavior(id_bhvMrIBody, OBJ_LIST_DEFAULT, false, fix_mr_i_body, nil)
+local function fix_mr_i(obj)
+    obj_set_model_extended(obj, E_MODEL_MR_I)
+end
+hook_behavior(id_bhvMrI, OBJ_LIST_GENACTOR, false, fix_mr_i, nil)
 
 -- Not working
 -- -- Fix tumbling bridge pieces
