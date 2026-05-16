@@ -6,6 +6,7 @@
 -- - Submarine center is at the right of visible object position, so a special
 -- function is needed to delete it
 
+
 -- Parameters
 local COOLDOWN_FRAMES = 50
 local SPEED_MULTIPLIER = 5.0 -- Adjusts object spawn position based on Mario speed
@@ -16,7 +17,7 @@ local TARGET_LEVEL = LEVEL_CASTLE_GROUNDS
 local TARGET_AREA = 1
 local TARGET_WARP = 0
 local recentObjs = {}
-local MAX_RECENT = 30
+local MAX_RECENT = 25
 
 -- Menu: spawn objects always upright?
 local spawnObjectsUpright = mod_storage_load_bool("spawn_objects_upright") or true
@@ -393,16 +394,18 @@ local categories = {
                 spawnOffset = 1600,
                 spawnYOffset = -600,
                 spawnLateralOffset = 4000,
+                cooldown_frames = 100,
             },
             {
                 behavior = id_bhvBowsersSub,
                 model = E_MODEL_DDD_BOWSER_SUB,
                 name = "Submarine (parallel)",
-                spawnOffset = 1800,
+                -- spawnOffset = 1800,
                 spawnYOffset = -600,
                 spawnYaw = 16384,
                 spawnOffset = 4200,
                 spawnLateralOffset = 300,
+                cooldown_frames = 100,
             },
             {
                 behavior = id_bhvLllRotatingHexagonalRing,
@@ -410,6 +413,7 @@ local categories = {
                 name = "Rotating Hexagon (LLL)",
                 spawnOffset = 1600,
                 spawnYOffset = -300,
+                cooldown_frames = 100,
             },
             {
                 behavior = id_bhvDorrie,
@@ -417,6 +421,33 @@ local categories = {
                 name = "Sea Dragon",
                 spawnOffset = -1000,
                 spawnYOffset = -400,
+            },
+            {
+                name = "JRB ship (perpendicular)",
+                behavior = id_bhvInSunkenShip3,
+                parts = {
+                  -- no behavior means the parent behavior will be used
+                  {model = E_MODEL_JRB_SHIP_LEFT_HALF_PART},
+                  {model = E_MODEL_JRB_SHIP_BACK_LEFT_PART},
+                  {model = E_MODEL_JRB_SHIP_RIGHT_HALF_PART},
+                  {model = E_MODEL_JRB_SHIP_BACK_RIGHT_PART},
+                },
+                spawnYOffset = -1400,
+                cooldown_frames = 200,
+            },
+            {
+                name = "JRB ship (parallel)",
+                behavior = id_bhvInSunkenShip3,
+                parts = {
+                  -- no behavior means the parent behavior will be used
+                  {model = E_MODEL_JRB_SHIP_LEFT_HALF_PART},
+                  {model = E_MODEL_JRB_SHIP_BACK_LEFT_PART},
+                  {model = E_MODEL_JRB_SHIP_RIGHT_HALF_PART},
+                  {model = E_MODEL_JRB_SHIP_BACK_RIGHT_PART},
+                },
+                spawnYOffset = -1400,
+                spawnYaw = 16384,
+                cooldown_frames = 200,
             },
         },
     },
@@ -636,11 +667,17 @@ local categories = {
             { name = "Spindrift", model = E_MODEL_SPINDRIFT, behavior = id_bhvSpindrift },
             { name = "Book", model = E_MODEL_BOOKEND, behavior = id_bhvFlyingBookend },
             { name = "Moneybag", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybagHidden },
-            -- TODO: To make it work first spawn hole than mole. Can this be fixed?
-            { name = "Mole hole (spawn first)", model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole },
-            { name = "Mole (spawn second)", model = E_MODEL_MONTY_MOLE, behavior = id_bhvMontyMole },
+            {
+              name = "Mole with hole",
+              parts = {
+                {model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole},
+                {model = E_MODEL_MONTY_MOLE, behavior = id_bhvMontyMole},
+              }
+            },
+            {name = "Mole hole", model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole},
             { name = "Snowman", model = E_MODEL_MR_BLIZZARD, behavior = id_bhvMrBlizzard },
-            { name = "Pokey (bugged)", model = E_MODEL_POKEY_HEAD, behavior = id_bhvPokey },
+            -- { name = "Pokey (bugged)", model = E_MODEL_POKEY_HEAD, behavior = id_bhvPokey },
+            { name = "Pokey (bugged)", model = E_MODEL_NONE, behavior = id_bhvPokey },
         },
     },
     {
@@ -685,7 +722,6 @@ local categories = {
             -- Commented because this is already part of "Sinking cage platform"
             -- { behavior = id_bhvDDDPole, model = E_MODEL_DDD_POLE, name = "DDD pole" },
             -- { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
-            { name = "Blue coin switch", behavior = id_bhvBlueCoinSwitch, model = E_MODEL_BLUE_COIN_SWITCH },
             -- {name = "Bowser key", behavior = id_bhvBowserKey, model = E_MODEL_BOWSER_KEY},
             { name = "Chain chomp gate", behavior = id_bhvChainChompGate, model = E_MODEL_BOB_CHAIN_CHOMP_GATE, spawnOffset = 300, spawnYaw = 32768},
             -- Questo sotto può essere interessante
@@ -697,7 +733,22 @@ local categories = {
                 spawnOffset = 0,
                 spawnYOffset = -200,
             },
+            {
+                name = "Water level diamond",
+                model = E_MODEL_WDW_WATER_LEVEL_DIAMOND,
+                behavior = id_bhvWaterLevelDiamond,
+            },
+            {
+                name = "Cannonless wall",
+                parts = {
+                  {model = E_MODEL_WF_BREAKABLE_WALL_LEFT, behavior = id_bhvWfBreakableWallLeft},
+                  {model = E_MODEL_WF_BREAKABLE_WALL_RIGHT, behavior = id_bhvWfBreakableWallRight},
+                },
+                spawnOffset = 400,
+                spawnYaw = 16384,
+            },
             -- USELESS
+            -- { name = "Blue coin switch", behavior = id_bhvBlueCoinSwitch, model = E_MODEL_BLUE_COIN_SWITCH },
             -- {
             --     name = "Switch animates object",
             --     model = E_MODEL_PURPLE_SWITCH,
@@ -711,7 +762,13 @@ local categories = {
             --     behavior = id_bhvFloorSwitchHiddenObjects,
             -- },
             -- { name = "Switch hidden boxes", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvPurpleSwitchHiddenBoxes },
-            { name = "Cap switch base", behavior = id_bhvCapSwitchBase, model = E_MODEL_CAP_SWITCH_BASE },
+            -- {
+            --   name = "Cap switch",
+            --   parts = {
+            --     {model = E_MODEL_CAP_SWITCH_BASE, behavior = id_bhvCapSwitchBase},
+            --     {model = E_MODEL_CAP_SWITCH, behavior = id_bhvCapSwitch},
+            --   }
+            -- },
             -- XXX: Exclamation boxes spawns, for a reason or another, are very heavy
             -- computationally, and it gets worse the more there are. Commented
             -- for this reason
@@ -856,57 +913,29 @@ local categories = {
             { name = "Seaweed", model = E_MODEL_SEAWEED, behavior = id_bhvSeaweed },
             { name = "Boo cage", behavior = id_bhvStaticObject, model = E_MODEL_HAUNTED_CAGE },
             { name = "RR cruiser wing", model = E_MODEL_RR_CRUISER_WING, behavior = id_bhvRrCruiserWing },
-            { name = "Cannon barrel", behavior = id_bhvCannonBarrel, model = E_MODEL_CANNON_BARREL },
+            { name = "Star smiley", model = E_MODEL_TTM_STAR_SMILEY, behavior = id_bhvStaticObject },
             { name = "Blue smiley", model = E_MODEL_TTM_BLUE_SMILEY, behavior = id_bhvStaticObject },
             { name = "Yellow smiley", model = E_MODEL_TTM_YELLOW_SMILEY, behavior = id_bhvStaticObject },
-            { name = "Star smiley", model = E_MODEL_TTM_STAR_SMILEY, behavior = id_bhvStaticObject },
             { name = "Moon smiley", model = E_MODEL_TTM_MOON_SMILEY, behavior = id_bhvStaticObject },
             { name = "Yellow smiley", model = E_MODEL_TTM_YELLOW_SMILEY, behavior = id_bhvStaticObject },
             { name = "Water bomb cannon", model = E_MODEL_CANNON_BASE, behavior = id_bhvWaterBombCannon },
             { name = "HMC red grills", model = E_MODEL_HMC_RED_GRILLS, behavior = id_bhvStaticObject },
-            {
-                name = "Water level diamond",
-                model = E_MODEL_WDW_WATER_LEVEL_DIAMOND,
-                behavior = id_bhvWaterLevelDiamond,
-            },
+            { name = "Cannon barrel", behavior = id_bhvCannonBarrel, model = E_MODEL_CANNON_BARREL },
             { name = "Yellow ball", model = E_MODEL_YELLOW_SPHERE, behavior = id_bhvYellowBall, spawnYOffset = 100 },
             { name = "Yoshi egg", model = E_MODEL_YOSHI_EGG, behavior = id_bhvAnimatedTexture },
             { name = "Ukiki cage", model = E_MODEL_TTM_STAR_CAGE, behavior = id_bhvUkikiCage, spawnYOffset = 100 },
             { name = "Chest bottom", behavior = id_bhvBetaChestBottom, model = E_MODEL_TREASURE_CHEST_BASE },
             { name = "Chest lid", behavior = id_bhvBetaChestLid, model = E_MODEL_TREASURE_CHEST_LID },
+            -- {
+            --   name = "Chest",
+            --   parts = {
+            --     {behavior = id_bhvBetaChestBottom, model = E_MODEL_TREASURE_CHEST_BASE},
+            --     {behavior = id_bhvBetaChestLid, model = E_MODEL_TREASURE_CHEST_LID},
+            --   }
+            -- },
             { name = "Boo key", behavior = id_bhvAlphaBooKey, model = E_MODEL_BETA_BOO_KEY },
             { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star", spawnYOffset = 100 },
             { name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel, spawnYaw = 32768},
-            {
-                name = "Cannonless wall left",
-                model = E_MODEL_WF_BREAKABLE_WALL_LEFT,
-                behavior = id_bhvWfBreakableWallLeft,
-                spawnOffset = 400,
-            },
-            {
-                name = "Cannonless wall right",
-                model = E_MODEL_WF_BREAKABLE_WALL_RIGHT,
-                behavior = id_bhvWfBreakableWallRight,
-                spawnOffset = 400,
-            },
-            {
-                name = "JRB ship left half part",
-                model = E_MODEL_JRB_SHIP_LEFT_HALF_PART,
-                behavior = id_bhvSunkenShipPart2,
-            },
-            {
-                name = "JRB ship right half part",
-                model = E_MODEL_JRB_SHIP_RIGHT_HALF_PART,
-                behavior = id_bhvSunkenShipPart2,
-            },
-            {
-                name = "WF solid tower platform",
-                model = E_MODEL_WF_TOWER_SQUARE_PLATORM,
-                behavior = id_bhvWfSolidTowerPlatform,
-                spawnOffset = 100,
-                spawnYOffset = -200,
-            },
-            -- { behavior = id_bhvToadMessage, model = E_MODEL_TOAD, name = "Toad"},
         },
     },
 }
@@ -916,8 +945,7 @@ if network_is_server() then
   table.insert(categories, {
     name = "Host only",
     items = {
-      -- Makes the game lag
-      -- {name = "Pyramid wall", model = E_MODEL_SSL_MOVING_PYRAMID_WALL, behavior = id_bhvSslMovingPyramidWall, spawnYaw = 16384},
+      -- {name = "Staircase (BitDW)", model = E_MODEL_BITDW_STAIRCASE, behavior = id_bhvStaticObject},
       {name = "Bowser arena", model = E_MODEL_BOWSER_2_TILTING_ARENA, behavior = id_bhvTiltingBowserLavaPlatform, spawnYOffset = -1200},
       {
           name = "Snowman Head",
@@ -930,6 +958,12 @@ if network_is_server() then
       {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
       { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
       {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
+    }
+  })
+  table.insert(categories, {
+    name = "Bugged (host-only)",
+    items = {
+      {name = "Tricky triangles (Bugged)", model = E_MODEL_RR_TRICKY_TRIANGLES, behavior = id_bhvAnimatesOnFloorSwitchPress, param2 = 2},
       {name = "Rotating triangle (bugged)", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid},
       -- Fix direction, also always goes same direction
       { name = "Spindel (bugged)", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
@@ -938,6 +972,8 @@ if network_is_server() then
           model = E_MODEL_ERROR_MODEL,
           behavior = id_bhvWfRotatingWoodenPlatform,
       },
+      -- Makes the game lag
+      -- {name = "Pyramid wall", model = E_MODEL_SSL_MOVING_PYRAMID_WALL, behavior = id_bhvSslMovingPyramidWall, spawnYaw = 16384},
       { name = "Tumbling bridge WF (bugged)", model = E_MODEL_ERROR_MODEL, behavior = id_bhvWfTumblingBridge },
       {
           name = "Tumbling bridge BITFS (bugged)",
@@ -946,6 +982,9 @@ if network_is_server() then
       },
       {name = "Floating wood bridge (bugged)", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
       {name = "Floating wood bridge large (bugged)", model = E_MODEL_LLL_LARGE_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
+      {name = "Book spawn (bugged)", model = E_MODEL_BOOKEND, behavior = id_bhvBookendSpawn, spawnYOffset = 100},
+      {name = "Staircase (BitDW)", model = E_MODEL_BITDW_STAIRCASE, behavior = id_bhvAnimatesOnFloorSwitchPress, param2 = 2},
+      {name = "Puzzle Bowser", model = E_MODEL_NONE, behavior = id_bhvLllBowserPuzzle},
     }
   })
 end
@@ -1079,44 +1118,51 @@ function spawn_selected(m)
         finalRoll = m.faceAngle.z + (obj.spawnRoll or 0)
     end
 
-    local o = spawn_sync_object(obj.behavior, obj.model, spawnX, spawnY, spawnZ, function(o)
-        -- See KNOWN_BUGS (3) at the top of this file
-        -- o.oFlags = o.oFlags & ~OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW
-        o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
-        o.oTimer = 0
-        -- o.oOpacity = 255  -- not working for ttc objects
-        o.oFaceAngleYaw = finalYaw
-        o.header.gfx.angle.y = finalYaw
-        o.oMoveAngleYaw = finalYaw
+    -- This for is for composite objects spawn. For example, JRB ship is
+    -- composed of 4 parts, that should be spawned together
+    local o
+    for _, objPart in ipairs(obj.parts or {{model = obj.model}}) do
+      o = spawn_sync_object(objPart.behavior or obj.behavior, objPart.model, spawnX, spawnY, spawnZ, function(o)
+          -- See KNOWN_BUGS (3) at the top of this file
+          -- o.oFlags = o.oFlags & ~OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW
+          o.oFlags = o.oFlags | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
+          o.oTimer = 0
+          -- o.oOpacity = 255  -- not working for ttc objects
+          o.oFaceAngleYaw = finalYaw
+          o.header.gfx.angle.y = finalYaw
+          o.oMoveAngleYaw = finalYaw
 
-        -- -- -- Hoot not grabbable if this code used, but conversation gets skipped
-        -- if obj.behavior == id_bhvHoot then
-        --   print('imahoot')
-        --   o.oIntangibleTimer = 0
-        --   o.header.gfx.node.flags = o.header.gfx.node.flags | GRAPH_RENDER_ACTIVE
-        --   o.oHootAvailability = HOOT_AVAIL_READY_TO_FLY
-        -- end
+          -- -- -- Hoot not grabbable if this code used, but conversation gets skipped
+          -- if obj.behavior == id_bhvHoot then
+          --   print('imahoot')
+          --   o.oIntangibleTimer = 0
+          --   o.header.gfx.node.flags = o.header.gfx.node.flags | GRAPH_RENDER_ACTIVE
+          --   o.oHootAvailability = HOOT_AVAIL_READY_TO_FLY
+          -- end
 
-        o.oFaceAnglePitch = finalPitch
-        o.header.gfx.angle.x = finalPitch
-        -- o.oMoveAnglePitch = finalPitch
-        o.oFaceAngleRoll = finalRoll
-        o.header.gfx.angle.z = finalRoll
-        -- o.oMoveAngleRoll = finalRoll
+          o.oFaceAnglePitch = finalPitch
+          o.header.gfx.angle.x = finalPitch
+          -- o.oMoveAnglePitch = finalPitch
+          o.oFaceAngleRoll = finalRoll
+          o.header.gfx.angle.z = finalRoll
+          -- o.oMoveAngleRoll = finalRoll
 
-        if obj.param2nd then
-            o.oBehParams2ndByte = obj.param2nd
-        elseif obj.param1 or obj.param2 or obj.param3 or obj.param4 then
-          o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
-        elseif obj.oAction then
-          o.oAction = obj.oAction
-        elseif obj.oSubAction then
-          o.oSubAction = obj.oSubAction
-        elseif obj.behavior == id_bhvCannon then  -- Fixes cannon yaw
-            o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
-        end
+          if obj.param2nd then
+              o.oBehParams2ndByte = obj.param2nd
+          elseif obj.param1 or obj.param2 or obj.param3 or obj.param4 then
+            o.oBehParams = ((obj.param1 or 0) << 24) | ((obj.param2 or 0) << 16) | ((obj.param3 or 0) << 8) | (obj.param4 or 0)
+          elseif obj.oAction then
+            o.oAction = obj.oAction
+          elseif obj.oSubAction then
+            o.oSubAction = obj.oSubAction
+          elseif obj.behavior == id_bhvCannon then  -- Fixes cannon yaw
+              o.oBehParams2ndByte = (finalYaw >> 8) & 0xFF
+          end
 
-    end)
+      end)
+
+      if o then next_object_id = next_object_id + 1 end
+    end
 
     if o then
         -- This section adds spawned object to the recent section
@@ -1131,7 +1177,7 @@ function spawn_selected(m)
         -- Insert just spawned object in Recent section
         table.insert(recentObjs, 1, obj)
 
-        -- When spawning object from Recent catgeory (selectedCategory == 1),
+        -- When spawning object from Recent category (selectedCategory == 1),
         -- jump to first position, because spawned object also jumps in first position
         if selectedCategory == 1 then
             selectedObjectInCat[selectedCategory] = 1
@@ -1143,7 +1189,7 @@ function spawn_selected(m)
         end
     end
 
-    data.cooldown = COOLDOWN_FRAMES
+    data.cooldown = obj.cooldown_frames or COOLDOWN_FRAMES
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 end
 
