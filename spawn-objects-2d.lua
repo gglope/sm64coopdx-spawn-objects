@@ -476,7 +476,7 @@ local categories = {
                   {model = E_MODEL_JRB_SHIP_BACK_RIGHT_PART},
                 },
                 spawnYOffset = -1400,
-                cooldown_frames = 200,
+                cooldown_frames = 180,
             },
             {
                 name = "JRB ship (parallel)",
@@ -490,7 +490,7 @@ local categories = {
                 },
                 spawnYOffset = -1400,
                 spawnYaw = 16384,
-                cooldown_frames = 200,
+                cooldown_frames = 180,
             },
         },
     },
@@ -639,8 +639,11 @@ local categories = {
             { behavior = id_bhvCirclingAmp, model = E_MODEL_AMP, name = "Circling Amp", spawnOffset = 0, spawnYOffset = 50 },
             { behavior = id_bhvHomingAmp, model = E_MODEL_AMP, name = "Homing Amp", spawnOffset = 300, spawnYOffset = 50 },
             { name = "Bowser bomb", behavior = id_bhvBowserBomb, model = E_MODEL_BOWSER_BOMB, spawnYOffset = 200 },
-            { behavior = id_bhvBowlingBall, model = E_MODEL_BOWLING_BALL, name = "Bowling Ball", spawnOffset = 300 },
-            { name = "Bowling ball pit", model = E_MODEL_BOWLING_BALL, behavior = id_bhvPitBowlingBall },
+            -- Always goes in the same direction
+            -- { behavior = id_bhvBowlingBall, model = E_MODEL_BOWLING_BALL, name = "Bowling Ball", spawnOffset = 300 },
+            { name = "Bowling ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvPitBowlingBall },
+            { name = "Bowling ball (still)", model = E_MODEL_BOWLING_BALL, behavior = id_bhvFreeBowlingBall },
+            -- Always goes in the same direction
             {
                 name = "Bowling ball spawner",
                 model = E_MODEL_BOWLING_BALL,
@@ -664,14 +667,14 @@ local categories = {
                 behavior = id_bhvFallingPillar,
                 spawnOffset = 400,
             },
-            { name = "Still bowling ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvFreeBowlingBall },
             {
                 name = "Rotating block with fire",
                 model = E_MODEL_LLL_ROTATING_BLOCK_FIRE_BARS,
                 behavior = id_bhvLllRotatingBlockWithFireBars,
                 spawnOffset = 300,
             },
-            { name = "JRB sliding box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbSlidingBox, spawnYOffset = 200 },
+            {name = "JRB sliding box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbSlidingBox, spawnYOffset = 200},
+            {name = "JRB sliding box (for ship)", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbSlidingBox},
         },
     },
     {
@@ -690,8 +693,8 @@ local categories = {
             { name = "Piranha plant fire (big)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant, param2 = 1 },
             { behavior = id_bhvSmallWhomp, model = E_MODEL_WHOMP, name = "Whomp", spawnOffset = 200 },
             { behavior = id_bhvThwomp, model = E_MODEL_THWOMP, name = "Thwomp", spawnOffset = 300 },
-            { behavior = id_bhvMadPiano, model = E_MODEL_MAD_PIANO, name = "Piano", spawnOffset = 300 },
             { name = "Thwomp 2", model = E_MODEL_THWOMP, behavior = id_bhvThwomp2 },
+            { behavior = id_bhvMadPiano, model = E_MODEL_MAD_PIANO, name = "Piano", spawnOffset = 300 },
             { behavior = id_bhvChuckya, model = E_MODEL_CHUCKYA, name = "Chuckya", spawnOffset = 200 },
             { behavior = id_bhvScuttlebug, model = E_MODEL_SCUTTLEBUG, name = "Scuttlebug", spawnOffset = 200 },
             { behavior = id_bhvFlyGuy, model = E_MODEL_FLYGUY, name = "Fly Guy", spawnOffset = 300 },
@@ -790,6 +793,31 @@ local categories = {
                 spawnOffset = 400,
                 spawnYaw = 16384,
             },
+            -- { name = "Bobomb buddy", behavior = id_bhvBobombBuddy, model = E_MODEL_BOBOMB_BUDDY },
+            { name = "Bobomb opens cannon", behavior = id_bhvBobombBuddyOpensCannon, model = E_MODEL_BOBOMB_BUDDY },
+            -- {
+            --   name = "Switch base",
+            --   model = E_MODEL_CAP_SWITCH_BASE,
+            --   behavior = id_bhvCapSwitchBase
+            -- },
+            {
+              name = "Switch red",
+              model = E_MODEL_CAP_SWITCH,
+              behavior = id_bhvCapSwitch,
+              param2nd = 0,
+            },
+            {
+              name = "Switch green",
+              model = E_MODEL_CAP_SWITCH,
+              behavior = id_bhvCapSwitch,
+              param2nd = 1,
+            },
+            {
+              name = "Switch blue",
+              model = E_MODEL_CAP_SWITCH,
+              behavior = id_bhvCapSwitch,
+              param2nd = 2,
+            },
             -- USELESS
             -- { name = "Blue coin switch", behavior = id_bhvBlueCoinSwitch, model = E_MODEL_BLUE_COIN_SWITCH },
             -- {
@@ -805,13 +833,6 @@ local categories = {
             --     behavior = id_bhvFloorSwitchHiddenObjects,
             -- },
             -- { name = "Switch hidden boxes", model = E_MODEL_PURPLE_SWITCH, behavior = id_bhvPurpleSwitchHiddenBoxes },
-            -- {
-            --   name = "Cap switch",
-            --   parts = {
-            --     {model = E_MODEL_CAP_SWITCH_BASE, behavior = id_bhvCapSwitchBase},
-            --     {model = E_MODEL_CAP_SWITCH, behavior = id_bhvCapSwitch},
-            --   }
-            -- },
             -- XXX: Exclamation boxes spawns, for a reason or another, are very heavy
             -- computationally, and it gets worse the more there are. Commented
             -- for this reason
@@ -917,8 +938,6 @@ local categories = {
         items = {
             { name = "Haunted bookshelf", model = E_MODEL_BBH_MOVING_BOOKSHELF, behavior = id_bhvHauntedBookshelf },
             { name = "Wooden post", model = E_MODEL_WOODEN_POST, behavior = id_bhvWoodenPost },
-            { name = "Bobomb buddy", behavior = id_bhvBobombBuddy, model = E_MODEL_BOBOMB_BUDDY },
-            { name = "Bobomb opens cannon", behavior = id_bhvBobombBuddyOpensCannon, model = E_MODEL_BOBOMB_BUDDY },
             { name = "Blue fish", behavior = id_bhvBlueFish, model = E_MODEL_FISH },
             -- Commented because it just flies outside of the map
             -- { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
@@ -1006,7 +1025,7 @@ if network_is_server() then
   table.insert(categories, {
     name = "Bugged (host-only)",
     items = {
-      {name = "Tricky triangles (Bugged)", model = E_MODEL_RR_TRICKY_TRIANGLES, behavior = id_bhvAnimatesOnFloorSwitchPress, param2 = 2},
+      {name = "Tricky triangles (Bugged)", model = E_MODEL_RR_TRICKY_TRIANGLES, behavior = id_bhvAnimatesOnFloorSwitchPress, param2nd = 2},
       {name = "Rotating triangle (bugged)", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid},
       -- Fix direction, also always goes same direction
       { name = "Spindel (bugged)", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
@@ -1267,29 +1286,27 @@ function spawn_selected(m)
       if o then next_object_id = next_object_id + 1 end
     end
 
-    if o then
-        -- This section adds spawned object to the recent section
-        -- This for is for removing duplicates
-        for i = #recentObjs, 1, -1 do
-          if recentObjs[i] == obj then
-              table.remove(recentObjs, i)
-              break
-          end
-        end
+    -- This section adds spawned object to the recent section
+    -- This for is for removing duplicates
+    for i = #recentObjs, 1, -1 do
+      if recentObjs[i] == obj then
+          table.remove(recentObjs, i)
+          break
+      end
+    end
 
-        -- Insert just spawned object in Recent section
-        table.insert(recentObjs, 1, obj)
+    -- Insert just spawned object in Recent section
+    table.insert(recentObjs, 1, obj)
 
-        -- When spawning object from Recent category (selectedCategory == 1),
-        -- jump to first position, because spawned object also jumps in first position
-        if selectedCategory == 1 then
-            selectedObjectInCat[selectedCategory] = 1
-        end
+    -- When spawning object from Recent category (selectedCategory == 1),
+    -- jump to first position, because spawned object also jumps in first position
+    if selectedCategory == 1 then
+        selectedObjectInCat[selectedCategory] = 1
+    end
 
-        -- No more than MAX_RECENT objects in the Recent section
-        if #recentObjs > MAX_RECENT then
-          table.remove(recentObjs)
-        end
+    -- No more than MAX_RECENT objects in the Recent section
+    if #recentObjs > MAX_RECENT then
+      table.remove(recentObjs)
     end
 
     data.cooldown = obj.cooldown_frames or COOLDOWN_FRAMES
