@@ -418,8 +418,8 @@ local categories = {
             {
                 behavior = id_bhvDorrie,
                 model = E_MODEL_DORRIE,
-                name = "Sea Dragon",
-                spawnOffset = -1000,
+                name = "Sea Dragon (Dorrie)",
+                spawnOffset = -1100,
                 spawnYOffset = -400,
             },
             {
@@ -510,6 +510,13 @@ local categories = {
                 model = E_MODEL_HMC_METAL_PLATFORM,
                 spawnYOffset = -100,
             },
+            {
+                name = "Arrow lift",
+                behavior = id_bhvArrowLift,
+                model = E_MODEL_WDW_ARROW_LIFT,
+                spawnOffset = 0,
+                spawnYOffset = -200,
+            },
             -- Disable because no one will use these
             -- {
             --     name = "TTC push block",
@@ -555,12 +562,6 @@ local categories = {
                 behavior = id_bhvHiddenStaircaseStep,
                 spawnYOffset = -350,
             },
-            {
-                name = "Water level pillar",
-                model = E_MODEL_CASTLE_WATER_LEVEL_PILLAR,
-                behavior = id_bhvWaterLevelPillar,
-                spawnOffset = 100,
-            },
         },
     },
     {
@@ -600,13 +601,15 @@ local categories = {
             -- { behavior = id_bhvBowlingBall, model = E_MODEL_BOWLING_BALL, name = "Bowling Ball", spawnOffset = 300 },
             { name = "Bowling ball", model = E_MODEL_BOWLING_BALL, behavior = id_bhvPitBowlingBall },
             { name = "Bowling ball (still)", model = E_MODEL_BOWLING_BALL, behavior = id_bhvFreeBowlingBall },
-            -- Always goes in the same direction
-            {
-                name = "Bowling ball spawner",
-                model = E_MODEL_BOWLING_BALL,
-                behavior = id_bhvThiBowlingBallSpawner,
-                spawnYOffset = 150,
-            },
+            -- hardcoded directions, that's why i commented it
+            -- {
+            --     name = "Bowling ball spawner",
+            --     model = E_MODEL_BOWLING_BALL,
+            --     -- behavior = id_bhvThiBowlingBallSpawner,
+            --     -- behavior = id_bhvTtmBowlingBallSpawner,
+            --     behavior = id_bhvBobBowlingBallSpawner,
+            --     spawnYOffset = 150,
+            -- },
             { name = "Grindel", model = E_MODEL_SSL_GRINDEL, behavior = id_bhvGrindel, spawnOffset = 300 },
             {
                 behavior = id_bhvHorizontalGrindel,
@@ -730,16 +733,15 @@ local categories = {
             -- Questo sotto può essere interessante
             { name = "Holdable object (test)", behavior = id_bhvBetaHoldableObject, model = E_MODEL_BULLY },
             {
-                name = "Arrow lift",
-                behavior = id_bhvArrowLift,
-                model = E_MODEL_WDW_ARROW_LIFT,
-                spawnOffset = 0,
-                spawnYOffset = -200,
-            },
-            {
                 name = "Water level diamond",
                 model = E_MODEL_WDW_WATER_LEVEL_DIAMOND,
                 behavior = id_bhvWaterLevelDiamond,
+            },
+            {
+                name = "Water level pillar",
+                model = E_MODEL_CASTLE_WATER_LEVEL_PILLAR,
+                behavior = id_bhvWaterLevelPillar,
+                spawnOffset = 100,
             },
             {
                 name = "Cannonless wall",
@@ -855,6 +857,14 @@ local categories = {
                 spawnOffset = 200,
                 spawnYOffset = 100,
                 spawnPitch = -16384,
+            },
+            {
+              name = "T. Pyramid top",
+              model = E_MODEL_SSL_PYRAMID_TOP,
+              behavior = id_bhvPyramidTop,
+              spawnYOffset = -300,
+              spawnOffset = 150,
+              spawnPitch = 32768
             },
             {
                 name = "T. Rotating bridge platform (RR)",
@@ -1408,6 +1418,14 @@ local function fix_mr_i(obj)
     obj_set_model_extended(obj, E_MODEL_MR_I)
 end
 hook_behavior(id_bhvMrI, OBJ_LIST_GENACTOR, false, fix_mr_i, nil)
+
+
+local function fix_dorrie(obj)
+  obj.oPosX = obj.oHomeX
+  obj.oPosY = obj.oHomeY
+  obj.oPosZ = obj.oHomeZ
+end
+hook_behavior(id_bhvDorrie, OBJ_LIST_SURFACE, false, fix_dorrie, nil)
 
 -- Not working
 -- -- Fix tumbling bridge pieces
