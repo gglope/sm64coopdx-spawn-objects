@@ -1749,9 +1749,11 @@ hook_behavior(id_bhvMrI, OBJ_LIST_GENACTOR, false, fix_mr_i, nil)
 
 
 local function fix_dorrie(obj)
-  obj.oPosX = obj.oHomeX
-  obj.oPosY = obj.oHomeY
-  obj.oPosZ = obj.oHomeZ
+  if obj.oModPlayerId > 0 and obj.oModObjNum > 0 then
+    obj.oPosX = obj.oHomeX
+    obj.oPosY = obj.oHomeY
+    obj.oPosZ = obj.oHomeZ
+  end
 end
 hook_behavior(id_bhvDorrie, OBJ_LIST_SURFACE, false, fix_dorrie, nil)
 
