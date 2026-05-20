@@ -96,6 +96,8 @@ Other:
 # Links
 
 - gGlobalObjectCollisionData: https://github.com/coop-deluxe/sm64coopdx/blob/main/docs/lua/structs.md#GlobalObjectCollisionData
+- https://github.com/coop-deluxe/sm64coopdx/blob/main/src/game/macro_presets.c
+- https://github.com/coop-deluxe/sm64coopdx/blob/main/docs/lua/guides/object-lists.md
 - James S' Kingdom beh values: https://sites.google.com/site/jamesskingdom/Home/video-game-secrets-by-james-s/super-mario-64-exposed/sm64-exposed-behaviour-values
 
 # Future development (maybe)
