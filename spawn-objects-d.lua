@@ -725,7 +725,7 @@ local categories = {
             { behavior = id_bhvMadPiano, model = E_MODEL_MAD_PIANO, name = "Piano", spawnOffset = 300 },
             { behavior = id_bhvChuckya, model = E_MODEL_CHUCKYA, name = "Chuckya", spawnOffset = 200 },
             { behavior = id_bhvScuttlebug, model = E_MODEL_SCUTTLEBUG, name = "Scuttlebug", spawnOffset = 200 },
-            -- param2nd here should mean that it also spit fires?
+            -- param2nd here should mean that it also spit fires
             { behavior = id_bhvFlyGuy, model = E_MODEL_FLYGUY, name = "Fly Guy", spawnOffset = 300, param2nd = 1 },
             { behavior = id_bhvEnemyLakitu, model = E_MODEL_LAKITU, name = "Lakitu", spawnYOffset = 50},
             { behavior = id_bhvBoo, model = E_MODEL_BOO, name = "Boo", spawnOffset = 300, spawnYOffset = 50 },

@@ -1,4 +1,4 @@
--- name: Spawn Objects (beta)
+-- name: Spawn Objects
 -- description: Spawn objects
 --
 -- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
@@ -55,9 +55,11 @@ local categories = {
             -- {name = "Hidden 1up", model = E_MODEL_1UP, behavior = id_bhvHidden1up},
             { name = "Hidden 1up pole", model = E_MODEL_1UP, behavior = id_bhvHidden1upInPole },
             { name = "Coin formation (front)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 480},
-            { name = "Coin formation (above)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 0, spawnYOffset = 200, param2nd = 1 },
-            { name = "Coin formation (circle)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 0, param2nd = 2},
-            { name = "Red coin", model = E_MODEL_RED_COIN, behavior = id_bhvRedCoin, spawnOffset = 100 },
+            { name = "Coin formation (vertical)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnYOffset = 0, param2nd = 1 },
+            { name = "Coin formation (ring)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 0, param2nd = 2},
+            { name = "Coin formation (ring flying)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, param2nd = 3},
+            { name = "Coin formation (arrow)", behavior = id_bhvCoinFormation, model = E_MODEL_YELLOW_COIN, spawnOffset = 300, param2nd = 4},
+            { name = "Red coin", model = E_MODEL_RED_COIN, behavior = id_bhvRedCoin },
             { name = "Blue coin jumping", behavior = id_bhvBlueCoinJumping, model = E_MODEL_BLUE_COIN },
             { name = "Blue coin sliding", behavior = id_bhvBlueCoinSliding, model = E_MODEL_BLUE_COIN },
             { name = "Marios cap", model = E_MODEL_MARIOS_CAP, behavior = id_bhvNormalCap },
@@ -72,16 +74,6 @@ local categories = {
                 behavior = id_bhvLllWoodPiece,
                 spawnYOffset = -100,
             },
-            {
-                behavior = id_bhvTree,
-                model = E_MODEL_BUBBLY_TREE,
-                name = "Tree",
-                spawnOffset = 250,
-                spawnYOffset = -100,
-            },
-            { name = "Spiky tree", model = E_MODEL_COURTYARD_SPIKY_TREE, behavior = id_bhvTree, spawnYOffset = -100 },
-            { name = "Palm tree", model = E_MODEL_PALM_TREE, behavior = id_bhvTree, spawnYOffset = -100 },
-            { name = "Snow tree", model = E_MODEL_SNOW_TREE, behavior = id_bhvTree, spawnYOffset = -100 },
             {
                 behavior = id_bhvTweester,
                 model = E_MODEL_TWEESTER,
@@ -100,7 +92,7 @@ local categories = {
                 spawnYOffset = -200,
             },
             {
-                name = "WDW (NON)rotating platform",
+                name = "WDW platform (non rotating)",
                 model = E_MODEL_WDW_ROTATING_PLATFORM,
                 behavior = id_bhvRotatingPlatform,
                 spawnYOffset = -250,
@@ -113,11 +105,137 @@ local categories = {
                 spawnLateralOffset = 180,
             },
             {
-                behavior = id_bhvSquarishPathMoving,
-                model = E_MODEL_BITDW_SQUARE_PLATFORM,
-                name = "Moving Pyramid",
+                behavior = id_bhvKickableBoard,
+                model = E_MODEL_WF_KICKABLE_BOARD,
+                name = "Kickable Board",
+                -- spawnYOffset = -30,
+                spawnYaw = 32768,
+            },
+            {
+                behavior = id_bhvKickableBoard,
+                model = E_MODEL_WF_KICKABLE_BOARD,
+                name = "Kickable Board (kicked)",
+                oAction = 2,
+                spawnYaw = 32768,
+            },
+            {
+                behavior = id_bhvKickableBoard,
+                model = E_MODEL_WF_KICKABLE_BOARD,
+                name = "Kickable Board (unkickable)",
+                oAction = 3,
+                spawnYaw = 32768,
+            },
+            {
+                behavior = id_bhvTree,
+                model = E_MODEL_BUBBLY_TREE,
+                name = "Tree",
+                spawnOffset = 250,
+                spawnYOffset = -100,
+            },
+            { name = "Spiky tree", model = E_MODEL_COURTYARD_SPIKY_TREE, behavior = id_bhvTree, spawnYOffset = -100 },
+            { name = "Palm tree", model = E_MODEL_PALM_TREE, behavior = id_bhvTree, spawnYOffset = -100 },
+            { name = "Snow tree", model = E_MODEL_SNOW_TREE, behavior = id_bhvTree, spawnYOffset = -100 },
+            {
+                name = "Koopa flag",
+                model = E_MODEL_KOOPA_FLAG,
+                behavior = id_bhvKoopaFlag,
+                spawnOffset = 200,
+                spawnYOffset = 20,
+            },
+            -- Koopa flag always goes on the ground, so i make it spawn higher
+            -- {name = "Koopa race endpoint", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaRaceEndpoint},
+            {
+                name = "Sliding platform (Bits)",
+                model = E_MODEL_BITS_SLIDING_PLATFORM,
+                behavior = id_bhvSlidingPlatform2,
+                spawnOffset = 120,
+                spawnYOffset = -300,
+                spawnYaw = 16384,
+            },
+            {
+                name = "Arrow Platform still (BitS)",
+                behavior = id_bhvActivatedBackAndForthPlatform,
+                model = E_MODEL_BITS_ARROW_PLATFORM,
+                spawnOffset = 200,
+                spawnYOffset = -200,
+                spawnYaw = 16384,
+            },
+            -- Bugged hitbox
+            -- {
+            --     name = "Sliding platform (RR)",
+            --     model = E_MODEL_RR_SLIDING_PLATFORM,
+            --     behavior = id_bhvSlidingPlatform2,
+            --     spawnYOffset = -300,
+            -- },
+            { name = "Pyramid top", model = E_MODEL_SSL_PYRAMID_TOP, behavior = id_bhvPyramidTop },
+            {
+                name = "Floating platform (JRB)",
+                model = E_MODEL_JRB_FLOATING_PLATFORM,
+                behavior = id_bhvJrbFloatingPlatform,
+            },
+            {
+                name = "Floating platform (WDW)",
+                model = E_MODEL_WDW_RECTANGULAR_FLOATING_PLATFORM,
+                behavior = id_bhvWdwRectangularFloatingPlatform,
+            },
+            {
+                name = "Floating platform square (WDW)",
+                model = E_MODEL_WDW_SQUARE_FLOATING_PLATFORM,
+                behavior = id_bhvWdwSquareFloatingPlatform,
+            },
+            {
+                name = "Staircase step",
+                model = E_MODEL_BBH_STAIRCASE_STEP,
+                behavior = id_bhvHiddenStaircaseStep,
+                spawnOffset = 250,
+                spawnYOffset = -350,
+            },
+            {
+                name = "WDW express el platform",
+                model = E_MODEL_WDW_EXPRESS_ELEVATOR,
+                behavior = id_bhvWdwExpressElevatorPlatform,
                 spawnOffset = 0,
-                spawnYOffset = -80,
+                spawnYOffset = -200,
+            },
+            {
+                name = "Checkered platform",
+                model = E_MODEL_CHECKERBOARD_PLATFORM,
+                behavior = id_bhvStaticCheckeredPlatform,
+                spawnOffset = 100,
+                spawnYOffset = -100,
+            },
+            -- Bugged, wrong hitbox
+            -- {
+            --     name = "Sliding platform (WF)",
+            --     model = E_MODEL_WF_TOWER_SQUARE_PLATORM,
+            --     behavior = id_bhvWfSlidingPlatform,
+            -- },
+            { name = "Pillar base", model = E_MODEL_JRB_FALLING_PILLAR_BASE, behavior = id_bhvPillarBase },
+            {
+                name = "THI island top",
+                model = E_MODEL_THI_HUGE_ISLAND_TOP,
+                behavior = id_bhvThiHugeIslandTop,
+                spawnYOffset = -100,
+                spawnOffset = 50,
+            },
+        },
+    },
+    {
+        name = "Platforms Moving",
+        items = {
+            -- Owls disabled because when they go way up, Mario can get stuck in interaction
+            -- { behavior = id_bhvHoot, model = E_MODEL_HOOT,name = "Owl", spawnOffset = 0, action = 1},
+            {
+                name = "Bitfs Tilting inverted pyramid",
+                behavior = id_bhvBitfsTiltingInvertedPyramid,
+                model = E_MODEL_BITFS_TILTING_SQUARE_PLATFORM,
+                spawnYOffset = -300,
+            },
+            {
+                name = "LLL Tilting inverted pyramid",
+                model = E_MODEL_LLL_TILTING_SQUARE_PLATFORM,
+                behavior = id_bhvLllTiltingInvertedPyramid,
+                spawnYOffset = -300,
             },
             {
                 behavior = id_bhvSeesawPlatform,
@@ -158,16 +276,11 @@ local categories = {
                 param2nd = 1,
             },
             {
-                name = "Bitfs Tilting inverted pyramid",
-                behavior = id_bhvBitfsTiltingInvertedPyramid,
-                model = E_MODEL_BITFS_TILTING_SQUARE_PLATFORM,
-                spawnYOffset = -300,
-            },
-            {
-                name = "LLL Tilting inverted pyramid",
-                model = E_MODEL_LLL_TILTING_SQUARE_PLATFORM,
-                behavior = id_bhvLllTiltingInvertedPyramid,
-                spawnYOffset = -300,
+                name = "Moving Pyramid",
+                behavior = id_bhvSquarishPathMoving,
+                model = E_MODEL_BITDW_SQUARE_PLATFORM,
+                spawnOffset = 40,
+                spawnYOffset = -80,
             },
             {
                 behavior = id_bhvLllDrawbridge,
@@ -179,41 +292,37 @@ local categories = {
                 spawnPitch = 0,
             },
             {
-                behavior = id_bhvKickableBoard,
-                model = E_MODEL_WF_KICKABLE_BOARD,
-                name = "Kickable Board",
-                -- spawnYOffset = -30,
-                spawnYaw = 32768,
+                behavior = id_bhvTTCRotatingSolid,
+                model = E_MODEL_TTC_ROTATING_CUBE,
+                name = "Rotating Cube (TTC)",
+                spawnOffset = 120,
+                spawnYOffset = -270,
             },
             {
-                behavior = id_bhvKickableBoard,
-                model = E_MODEL_WF_KICKABLE_BOARD,
-                name = "Kickable Board (kicked)",
-                oAction = 2,
-                spawnYaw = 32768,
+                behavior = id_bhvTTCRotatingSolid,
+                model = E_MODEL_TTC_ROTATING_PRISM,
+                name = "Rotating Prism (TTC)",
+                spawnOffset = 120,
+                spawnYOffset = -270,
+                param2nd = 1,
             },
             {
-                behavior = id_bhvKickableBoard,
-                model = E_MODEL_WF_KICKABLE_BOARD,
-                name = "Kickable Board (unkickable)",
-                oAction = 3,
-                spawnYaw = 32768,
+                name = "Rotating hexagon (TTC)",
+                model = E_MODEL_TTC_ROTATING_HEXAGON,
+                behavior = id_bhvTTCCog,
+                spawnOffset = 150,
+                spawnYOffset = -50,
             },
-            { name = "TTC treadmill", model = E_MODEL_TTC_LARGE_TREADMILL, behavior = id_bhvTTCTreadmill },
-            { behavior = id_bhvTTCSpinner, model = E_MODEL_TTC_SPINNER, name = "Spinner", spawnOffset = 0 },
+            {name = "Rotating triangle (TTC)", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCCog, spawnYaw = 32768, param2nd = 2},
+            { name = "Treadmill (TTC)", model = E_MODEL_TTC_LARGE_TREADMILL, behavior = id_bhvTTCTreadmill },
+            { name = "Treadmill small (TTC)", model = E_MODEL_TTC_SMALL_TREADMILL, behavior = id_bhvTTCTreadmill, param2nd = 1 },
+            { behavior = id_bhvTTCSpinner, model = E_MODEL_TTC_SPINNER, name = "Spinner (TTC)", spawnOffset = 0 },
             {
                 behavior = id_bhvTTC2DRotator,
                 model = E_MODEL_TTC_CLOCK_HAND,
-                name = "Clock Hand",
+                name = "Clock Hand (TTC)",
                 spawnOffset = 0,
-                spawnYOffset = -40,
-            },
-            {
-                behavior = id_bhvDonutPlatform,
-                model = E_MODEL_RR_DONUT_PLATFORM,
-                name = "Donut Platform",
-                spawnOffset = 200,
-                spawnYOffset = -200,
+                spawnYOffset = -60,
             },
             {
                 name = "Moving octagon",
@@ -223,99 +332,112 @@ local categories = {
                 spawnYOffset = -200,
             },
             {
-                name = "Koopa flag",
-                model = E_MODEL_KOOPA_FLAG,
-                behavior = id_bhvKoopaFlag,
-                spawnOffset = 200,
-                spawnYOffset = 20,
-            },
-            {
-                name = "Rotating hexagon (TTC)",
-                model = E_MODEL_TTC_ROTATING_HEXAGON,
-                behavior = id_bhvTTCCog,
-                spawnOffset = 100,
-                spawnYOffset = -50,
-            },
-            -- Koopa flag always goes on the ground, so i make it spawn higher
-            -- {name = "Koopa race endpoint", model = E_MODEL_KOOPA_FLAG, behavior = id_bhvKoopaRaceEndpoint},
-            {
-                name = "Sliding platform (Bits)",
-                model = E_MODEL_BITS_SLIDING_PLATFORM,
-                behavior = id_bhvSlidingPlatform2,
-                spawnYOffset = -300,
-            },
-            -- Bugged hitbox
-            -- {
-            --     name = "Sliding platform (RR)",
-            --     model = E_MODEL_RR_SLIDING_PLATFORM,
-            --     behavior = id_bhvSlidingPlatform2,
-            --     spawnYOffset = -300,
-            -- },
-            {
                 name = "Tilting floor platform",
                 behavior = id_bhvBbhTiltingTrapPlatform,
                 model = E_MODEL_BBH_TILTING_FLOOR_PLATFORM,
                 spawnYOffset = -200,
             },
-            { name = "Pyramid top", model = E_MODEL_SSL_PYRAMID_TOP, behavior = id_bhvPyramidTop },
             {
-                name = "Floating platform (JRB)",
-                model = E_MODEL_JRB_FLOATING_PLATFORM,
-                behavior = id_bhvJrbFloatingPlatform,
-            },
-            {
-                name = "Floating platform (WDW)",
-                model = E_MODEL_WDW_RECTANGULAR_FLOATING_PLATFORM,
-                behavior = id_bhvWdwRectangularFloatingPlatform,
-            },
-            {
-                name = "Floating platform square (WDW)",
-                model = E_MODEL_WDW_SQUARE_FLOATING_PLATFORM,
-                behavior = id_bhvWdwSquareFloatingPlatform,
-            },
-            {
-                name = "WDW express el platform",
-                model = E_MODEL_WDW_EXPRESS_ELEVATOR,
-                behavior = id_bhvWdwExpressElevatorPlatform,
-                spawnOffset = 0,
+                behavior = id_bhvDonutPlatform,
+                model = E_MODEL_RR_DONUT_PLATFORM,
+                name = "Donut Platform",
+                spawnOffset = 200,
                 spawnYOffset = -200,
-            },
-            {
-                name = "Checkered platform",
-                model = E_MODEL_CHECKERBOARD_PLATFORM,
-                behavior = id_bhvStaticCheckeredPlatform,
-                spawnOffset = 100,
-                spawnYOffset = -100,
             },
             {
                 name = "Checkerboard elevator (swings)",
                 behavior = id_bhvCheckerboardPlatformSub,
                 model = E_MODEL_CHECKERBOARD_PLATFORM,
-                spawnOffset = 300,
+                spawnOffset = 140,
                 spawnYOffset = -200,
             },
-            -- Bugged, wrong hitbox
-            -- {
-            --     name = "Sliding platform (WF)",
-            --     model = E_MODEL_WF_TOWER_SQUARE_PLATORM,
-            --     behavior = id_bhvWfSlidingPlatform,
-            -- },
-            { name = "Pillar base", model = E_MODEL_JRB_FALLING_PILLAR_BASE, behavior = id_bhvPillarBase },
+            { name = "Ferris wheel", model = E_MODEL_BITS_FERRIS_WHEEL_AXLE, behavior = id_bhvFerrisWheelAxle },
             {
-                name = "THI island top",
-                model = E_MODEL_THI_HUGE_ISLAND_TOP,
-                behavior = id_bhvThiHugeIslandTop,
-                spawnYOffset = -100,
-                spawnOffset = 50,
+                name = "HMC elevator platform",
+                model = E_MODEL_HMC_ELEVATOR_PLATFORM,
+                behavior = id_bhvHmcElevatorPlatform,
+                spawnOffset = 0,
+                spawnYOffset = -80,
             },
+            {
+                name = "RR elevator platform",
+                model = E_MODEL_RR_ELEVATOR_PLATFORM,
+                behavior = id_bhvRrElevatorPlatform,
+            },
+            {
+                name = "Mesh elevator",
+                model = E_MODEL_BBH_MESH_ELEVATOR,
+                behavior = id_bhvMeshElevator,
+                spawnOffset = 200,
+                spawnYOffset = -50,
+            },
+            {
+                behavior = id_bhvCheckerboardElevatorGroup,
+                model = E_MODEL_CHECKERBOARD_PLATFORM,
+                name = "Checkerboard Elevator Group",
+                spawnYOffset = -80,
+            },
+            {
+                name = "WDW express elevator",
+                model = E_MODEL_WDW_EXPRESS_ELEVATOR,
+                behavior = id_bhvWdwExpressElevator,
+                spawnOffset = 0,
+                spawnYOffset = -200,
+            },
+            {
+                name = "Sinking cage platform",
+                behavior = id_bhvBitfsSinkingCagePlatform,
+                model = E_MODEL_BITFS_SINKING_CAGE_PLATFORM,
+                spawnOffset = 200,
+                spawnYOffset = -150,
+                param2nd = 1
+            },
+            {
+                name = "TTC elevator",
+                model = E_MODEL_TTC_ELEVATOR_PLATFORM,
+                behavior = id_bhvTTCElevator,
+                spawnOffset = 0,
+                spawnYOffset = -100,
+            },
+            {
+                name = "Controllable platform",
+                behavior = id_bhvControllablePlatform,
+                model = E_MODEL_HMC_METAL_PLATFORM,
+                spawnYOffset = -100,
+            },
+            {
+                name = "Arrow lift",
+                behavior = id_bhvArrowLift,
+                model = E_MODEL_WDW_ARROW_LIFT,
+                spawnOffset = 0,
+                spawnYOffset = -200,
+            },
+            -- Disable because no one will use these
+            -- {
+            --     name = "TTC push block",
+            --     model = E_MODEL_TTC_PUSH_BLOCK,
+            --     behavior = id_bhvTTCMovingBar,
+            --     spawnOffset = 300,
+            --     spawnYOffset = -200,
+            -- },
+            -- {
+            --     name = "TTC pit block",
+            --     model = E_MODEL_TTC_PIT_BLOCK,
+            --     behavior = id_bhvTTCPitBlock,
+            --     spawnYOffset = -300,
+            -- },
+            -- Disabled because sometimes Mario gets teleported way out of bounds
+            -- {name = "Pyramid elevator", model = E_MODEL_SSL_PYRAMID_ELEVATOR, behavior = id_bhvPyramidElevator},
         },
     },
     {
-        name = "Big Platforms",
+        name = "Platforms Big",
         items = {
             -- Logs get pitch ~= 0 when saved
-            { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log TTM", spawnYOffset = -250 },
-            { name = "Log LLL", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnYOffset = -250 },
+            { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log TTM (parallel)", spawnYOffset = -250 },
+            { behavior = id_bhvTtmRollingLog, model = E_MODEL_TTM_ROLLING_LOG, name = "Log TTM (perpendicular)", spawnOffset = 700, spawnYOffset = -250, spawnYaw = 16384},
+            { name = "Log LLL (parallel)", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnYOffset = -250 },
+            { name = "Log LLL (perpendicular)", model = E_MODEL_LLL_ROLLING_LOG, behavior = id_bhvLllRollingLog, spawnOffset = 700, spawnYOffset = -250, spawnYaw = 16384},
             {
                 behavior = id_bhvBitfsSinkingPlatforms,
                 model = E_MODEL_BITFS_SINKING_PLATFORMS,
@@ -452,119 +574,6 @@ local categories = {
         },
     },
     {
-        name = "Elevators",
-        items = {
-            -- Owls disabled because when they go way up, Mario can get stuck in interaction
-            -- { behavior = id_bhvHoot, model = E_MODEL_HOOT,name = "Owl", spawnOffset = 0, action = 1},
-            { name = "Ferris wheel", model = E_MODEL_BITS_FERRIS_WHEEL_AXLE, behavior = id_bhvFerrisWheelAxle },
-            {
-                name = "HMC elevator platform",
-                model = E_MODEL_HMC_ELEVATOR_PLATFORM,
-                behavior = id_bhvHmcElevatorPlatform,
-                spawnOffset = 0,
-                spawnYOffset = -80,
-            },
-            {
-                name = "RR elevator platform",
-                model = E_MODEL_RR_ELEVATOR_PLATFORM,
-                behavior = id_bhvRrElevatorPlatform,
-            },
-            {
-                name = "Mesh elevator",
-                model = E_MODEL_BBH_MESH_ELEVATOR,
-                behavior = id_bhvMeshElevator,
-                spawnOffset = 200,
-                spawnYOffset = -50,
-            },
-            {
-                behavior = id_bhvCheckerboardElevatorGroup,
-                model = E_MODEL_CHECKERBOARD_PLATFORM,
-                name = "Checkerboard Elevator Group",
-                spawnYOffset = -80,
-            },
-            {
-                name = "WDW express elevator",
-                model = E_MODEL_WDW_EXPRESS_ELEVATOR,
-                behavior = id_bhvWdwExpressElevator,
-                spawnOffset = 0,
-                spawnYOffset = -200,
-            },
-            {
-                name = "Sinking cage platform",
-                behavior = id_bhvBitfsSinkingCagePlatform,
-                model = E_MODEL_BITFS_SINKING_CAGE_PLATFORM,
-                spawnOffset = 200,
-                spawnYOffset = -150,
-                param2nd = 1
-            },
-            {
-                name = "TTC elevator",
-                model = E_MODEL_TTC_ELEVATOR_PLATFORM,
-                behavior = id_bhvTTCElevator,
-                spawnOffset = 0,
-                spawnYOffset = -100,
-            },
-            {
-                name = "Controllable platform",
-                behavior = id_bhvControllablePlatform,
-                model = E_MODEL_HMC_METAL_PLATFORM,
-                spawnYOffset = -100,
-            },
-            {
-                name = "Arrow lift",
-                behavior = id_bhvArrowLift,
-                model = E_MODEL_WDW_ARROW_LIFT,
-                spawnOffset = 0,
-                spawnYOffset = -200,
-            },
-            -- Disable because no one will use these
-            -- {
-            --     name = "TTC push block",
-            --     model = E_MODEL_TTC_PUSH_BLOCK,
-            --     behavior = id_bhvTTCMovingBar,
-            --     spawnOffset = 300,
-            --     spawnYOffset = -200,
-            -- },
-            -- {
-            --     name = "TTC pit block",
-            --     model = E_MODEL_TTC_PIT_BLOCK,
-            --     behavior = id_bhvTTCPitBlock,
-            --     spawnYOffset = -300,
-            -- },
-            -- Disabled because sometimes Mario gets teleported way out of bounds
-            -- {name = "Pyramid elevator", model = E_MODEL_SSL_PYRAMID_ELEVATOR, behavior = id_bhvPyramidElevator},
-        },
-    },
-    {
-        name = "Squares",
-        items = {
-            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box"},
-            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box (Big)", param2nd = 3 },
-            {
-                behavior = id_bhvTTCRotatingSolid,
-                model = E_MODEL_TTC_ROTATING_CUBE,
-                name = "Rotating Cube",
-                spawnYOffset = 0,
-            },
-            {
-                behavior = id_bhvPushableMetalBox,
-                model = E_MODEL_METAL_BOX,
-                name = "Metal Box",
-                spawnOffset = 200,
-                spawnYOffset = 0,
-            },
-            { behavior = id_bhvBreakableBox, model = E_MODEL_ERROR_MODEL, name = "ERROR" },
-            { name = "Breakable box small", behavior = id_bhvBreakableBoxSmall, model = E_MODEL_BREAKABLE_BOX_SMALL },
-            { name = "JRB floating box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbFloatingBox, spawnYOffset = 100 },
-            {
-                name = "Staircase step",
-                model = E_MODEL_BBH_STAIRCASE_STEP,
-                behavior = id_bhvHiddenStaircaseStep,
-                spawnYOffset = -350,
-            },
-        },
-    },
-    {
         name = "Hazards",
         items = {
             -- { behavior = id_bhvMontyMoleRock, model = E_MODEL_PEBBLE, name = "Mole rock", spawnOffset = 150 },
@@ -590,12 +599,16 @@ local categories = {
             },
             -- On this no yaw, pitch and roll is working. Will always hit the Mario who spawned it
             { name = "Blue flames group", behavior = id_bhvBlueFlamesGroup, model = E_MODEL_BLUE_FLAME},
+            { behavior = id_bhvThwomp, model = E_MODEL_THWOMP, name = "Thwomp", spawnOffset = 300 },
+            -- Don't know the difference with simple Thwomp
+            -- { name = "Thwomp 2", model = E_MODEL_THWOMP, behavior = id_bhvThwomp2 },
             { behavior = id_bhvToxBox, model = E_MODEL_SSL_TOX_BOX, name = "Tox-Box", spawnYOffset = 250 },
             { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower", spawnOffset = 200, spawnYOffset = 100},
             { behavior = id_bhvFlamethrower, model = E_MODEL_STAR, name = "Flamethrower (upwards)", spawnOffset = 200, param2nd = 4, spawnYOffset = 0},
             { behavior = id_bhvFireSpitter, model = E_MODEL_BOWLING_BALL, name = "Fire Spitter", spawnOffset = 200, spawnYOffset = 50 },
             { behavior = id_bhvCirclingAmp, model = E_MODEL_AMP, name = "Circling Amp", spawnOffset = 0, spawnYOffset = 50 },
             { behavior = id_bhvHomingAmp, model = E_MODEL_AMP, name = "Homing Amp", spawnOffset = 300, spawnYOffset = 50 },
+            { behavior = id_bhvClamShell, model = E_MODEL_CLAM_SHELL, name = "Clam Shell", spawnOffset = 400 },
             { name = "Bowser bomb", behavior = id_bhvBowserBomb, model = E_MODEL_BOWSER_BOMB, spawnYOffset = 200 },
             -- Always goes in the same direction
             -- { behavior = id_bhvBowlingBall, model = E_MODEL_BOWLING_BALL, name = "Bowling Ball", spawnOffset = 300 },
@@ -643,55 +656,15 @@ local categories = {
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba", spawnOffset = 200 },
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba (small)", spawnOffset = 200, param2nd = 2},
             { name = "Goomba triplet spawner", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvGoombaTripletSpawner},
-            -- { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200 },
-            { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200, param2nd = 1 },
-            { name = "Bobomb", behavior = id_bhvBobomb, model = E_MODEL_BLACK_BOBOMB, spawnOffset = 100 },
-            { behavior = id_bhvBobomb, model = E_MODEL_BOBOMB_BUDDY, name = "Bobomb Not-Buddy", spawnOffset = 200 },
-            { behavior = id_bhvSmallBully, model = E_MODEL_BULLY, name = "Bully", spawnOffset = 100 },
-            { name = "Piranha plant", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant },
-            { name = "Piranha plant fire (small)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant },
-            { name = "Piranha plant fire (big)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant, param2 = 1 },
-            { behavior = id_bhvSmallWhomp, model = E_MODEL_WHOMP, name = "Whomp", spawnOffset = 200 },
-            { behavior = id_bhvThwomp, model = E_MODEL_THWOMP, name = "Thwomp", spawnOffset = 300 },
-            { name = "Thwomp 2", model = E_MODEL_THWOMP, behavior = id_bhvThwomp2 },
-            { behavior = id_bhvMadPiano, model = E_MODEL_MAD_PIANO, name = "Piano", spawnOffset = 300 },
-            { behavior = id_bhvChuckya, model = E_MODEL_CHUCKYA, name = "Chuckya", spawnOffset = 200 },
-            { behavior = id_bhvScuttlebug, model = E_MODEL_SCUTTLEBUG, name = "Scuttlebug", spawnOffset = 200 },
-            { behavior = id_bhvFlyGuy, model = E_MODEL_FLYGUY, name = "Fly Guy", spawnOffset = 300 },
-            { behavior = id_bhvEnemyLakitu, model = E_MODEL_LAKITU, name = "Lakitu", spawnYOffset = 50},
-            { behavior = id_bhvBoo, model = E_MODEL_BOO, name = "Boo", spawnOffset = 300, spawnYOffset = 50 },
-            { behavior = id_bhvSwoop, model = E_MODEL_SWOOP, name = "Bat", spawnYOffset = 200 },
-            { behavior = id_bhvSnufit, model = E_MODEL_SNUFIT, name = "Snufit", spawnYOffset = 200 },
-            { behavior = id_bhvKlepto, model = E_MODEL_KLEPTO, name = "Vulture", spawnOffset = 300 },
-            { behavior = id_bhvUnagi, model = E_MODEL_UNAGI, name = "Eel", spawnOffset = 300 },
-            { behavior = id_bhvBubba, model = E_MODEL_BUBBA, name = "Bubba", spawnOffset = 300 },
-            {name = "Bub", model = E_MODEL_BUB, behavior = id_bhvBub},
-            { behavior = id_bhvClamShell, model = E_MODEL_CLAM_SHELL, name = "Clam Shell", spawnOffset = 400 },
-            { behavior = id_bhvHeaveHo, model = E_MODEL_HEAVE_HO, name = "Heave-Ho", spawnOffset = 200 },
-            {name = "Mr. I", model = E_MODEL_MR_I, behavior = id_bhvMrI},
-            { name = "Skeeter", model = E_MODEL_SKEETER, behavior = id_bhvSkeeter, spawnOffset = 400 },
-            { name = "Spindrift", model = E_MODEL_SPINDRIFT, behavior = id_bhvSpindrift },
-            { name = "Book", model = E_MODEL_BOOKEND, behavior = id_bhvFlyingBookend },
-            { name = "Moneybag", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybagHidden },
-            {
-              name = "Mole with hole",
-              parts = {
-                {model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole},
-                {model = E_MODEL_MONTY_MOLE, behavior = id_bhvMontyMole},
-              }
-            },
-            {name = "Mole hole", model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole},
-            { name = "Snowman", model = E_MODEL_MR_BLIZZARD, behavior = id_bhvMrBlizzard },
-            -- { name = "Pokey (bugged)", model = E_MODEL_POKEY_HEAD, behavior = id_bhvPokey },
-            { name = "Pokey (bugged)", model = E_MODEL_NONE, behavior = id_bhvPokey },
-        },
-    },
-    {
-        name = "Big enemies",
-        items = {
             { behavior = id_bhvGoomba, model = E_MODEL_GOOMBA, name = "Goomba (big)", spawnOffset = 300, param2nd = 1},
             { name = "Goomba triplet spawner (big)", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvGoombaTripletSpawner, param2nd = 1 },
-            { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
+            -- { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, spawnOffset = 200 },
+            { name = "Koopa", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, param2nd = 1 },
+            { name = "Koopa (small)", model = E_MODEL_KOOPA_WITH_SHELL, behavior = id_bhvKoopa, param2nd = 4 },
+            { name = "Bobomb", behavior = id_bhvBobomb, model = E_MODEL_BLACK_BOBOMB, spawnOffset = 100 },
+            -- Commented because enemy list is too long
+            -- { behavior = id_bhvBobomb, model = E_MODEL_BOBOMB_BUDDY, name = "Bobomb Not-Buddy", spawnOffset = 200 },
+            { behavior = id_bhvSmallBully, model = E_MODEL_BULLY, name = "Bully", spawnOffset = 100 },
             {
                 behavior = id_bhvBigBully,
                 model = E_MODEL_BULLY_BOSS,
@@ -701,12 +674,46 @@ local categories = {
                 spawnPitch = 0,
                 spawnRoll = 0,
             },
-            { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser", param2nd = 1 },
-            { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2, param2nd = 1},
+            { name = "Piranha plant", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvPiranhaPlant },
+            { name = "Piranha plant fire (small)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant },
+            { name = "Piranha plant fire (big)", model = E_MODEL_PIRANHA_PLANT, behavior = id_bhvFirePiranhaPlant, param2 = 1 },
+            { behavior = id_bhvChainChomp, model = E_MODEL_CHAIN_CHOMP, name = "Chain Chomp", spawnOffset = 400 },
+            { behavior = id_bhvSmallWhomp, model = E_MODEL_WHOMP, name = "Whomp", spawnOffset = 200 },
+            { behavior = id_bhvMadPiano, model = E_MODEL_MAD_PIANO, name = "Piano", spawnOffset = 300 },
+            { behavior = id_bhvChuckya, model = E_MODEL_CHUCKYA, name = "Chuckya", spawnOffset = 200 },
+            { behavior = id_bhvScuttlebug, model = E_MODEL_SCUTTLEBUG, name = "Scuttlebug", spawnOffset = 200 },
+            -- param2nd here should mean that it also spit fires
+            { behavior = id_bhvFlyGuy, model = E_MODEL_FLYGUY, name = "Fly Guy", spawnOffset = 300, param2nd = 1 },
+            { behavior = id_bhvEnemyLakitu, model = E_MODEL_LAKITU, name = "Lakitu", spawnYOffset = 50},
+            { behavior = id_bhvBoo, model = E_MODEL_BOO, name = "Boo", spawnOffset = 300, spawnYOffset = 50 },
+            { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Boo balcony big", spawnOffset = 300 },
+            { behavior = id_bhvSwoop, model = E_MODEL_SWOOP, name = "Bat", spawnYOffset = 200 },
+            -- { behavior = id_bhvSwoop, model = E_MODEL_SWOOP, name = "Bat 1", spawnYOffset = 200, param2nd = 1},
+            { behavior = id_bhvSnufit, model = E_MODEL_SNUFIT, name = "Snufit", spawnYOffset = 200 },
+            { behavior = id_bhvKlepto, model = E_MODEL_KLEPTO, name = "Vulture", spawnOffset = 300 },
+            { behavior = id_bhvUnagi, model = E_MODEL_UNAGI, name = "Eel", spawnOffset = 300 },
+            { behavior = id_bhvBubba, model = E_MODEL_BUBBA, name = "Bubba", spawnOffset = 300 },
+            {name = "Bub", model = E_MODEL_BUB, behavior = id_bhvBub},
+            { behavior = id_bhvHeaveHo, model = E_MODEL_HEAVE_HO, name = "Heave-Ho", spawnOffset = 200 },
+            {name = "Mr. I", model = E_MODEL_MR_I, behavior = id_bhvMrI},
             {name = "Mr. I boss", model = E_MODEL_MR_I, behavior = id_bhvMrI, param2nd = 1},
-            -- {name = "Big bully with minions", behavior = id_bhvBigBullyWithMinions, model = E_MODEL_BULLY_BOSS},
-            { behavior = id_bhvBalconyBigBoo, model = E_MODEL_BOO, name = "Balcony big boo", spawnOffset = 300 },
-            -- Appears small
+            { name = "Skeeter", model = E_MODEL_SKEETER, behavior = id_bhvSkeeter, spawnOffset = 400 },
+            { name = "Spindrift", model = E_MODEL_SPINDRIFT, behavior = id_bhvSpindrift },
+            { name = "Book", model = E_MODEL_BOOKEND, behavior = id_bhvFlyingBookend },
+            { name = "Moneybag", model = E_MODEL_MONEYBAG, behavior = id_bhvMoneybagHidden },
+            -- param2nd 1 here means the mole also throws rocks
+            {
+              name = "Mole with hole",
+              parts = {
+                {model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole},
+                {model = E_MODEL_MONTY_MOLE, behavior = id_bhvMontyMole},
+              },
+              param2nd = 1,
+            },
+            {name = "Mole hole", model = E_MODEL_DL_MONTY_MOLE_HOLE, behavior = id_bhvMontyMoleHole},
+            { name = "Snowman", model = E_MODEL_MR_BLIZZARD, behavior = id_bhvMrBlizzard },
+            -- { name = "Pokey (bugged)", model = E_MODEL_POKEY_HEAD, behavior = id_bhvPokey },
+            { name = "Pokey (bugged)", model = E_MODEL_NONE, behavior = id_bhvPokey },
         },
     },
     {
@@ -719,30 +726,20 @@ local categories = {
                 spawnYOffset = 0,
                 spawnYaw = -16384,
             },
-            { behavior = id_bhvJumpingBox, model = E_MODEL_BREAKABLE_BOX_SMALL, name = "Jumping Box" },
-            { behavior = id_bhvWhirlpool, model = E_MODEL_DL_WHIRLPOOL, name = "Whirlpool" },
-            { behavior = id_bhvSLWalkingPenguin, model = E_MODEL_PENGUIN, name = "Walking Penguin" },
-            { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby, param2nd = 1 },
-            { behavior = id_bhvUkiki, model = E_MODEL_UKIKI, name = "Monkey" },
-            { name = "Monkey Macro", model = E_MODEL_UKIKI, behavior = id_bhvMacroUkiki },
-            -- Commented because this is already part of "Sinking cage platform"
-            -- { behavior = id_bhvDDDPole, model = E_MODEL_DDD_POLE, name = "DDD pole" },
-            -- { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
-            -- {name = "Bowser key", behavior = id_bhvBowserKey, model = E_MODEL_BOWSER_KEY},
+            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box"},
+            { behavior = id_bhvBreakableBox, model = E_MODEL_BREAKABLE_BOX, name = "Breakable Box (big)", param2nd = 3 },
+            { name = "Breakable Box (small", behavior = id_bhvBreakableBoxSmall, model = E_MODEL_BREAKABLE_BOX_SMALL },
+            {
+                behavior = id_bhvPushableMetalBox,
+                model = E_MODEL_METAL_BOX,
+                name = "Metal Box",
+                spawnOffset = 200,
+                spawnYOffset = 0,
+            },
+            { behavior = id_bhvBreakableBox, model = E_MODEL_ERROR_MODEL, name = "ERROR" },
+            { name = "JRB floating box", model = E_MODEL_JRB_SLIDING_BOX, behavior = id_bhvJrbFloatingBox, spawnYOffset = 100 },
             { name = "Chain chomp gate", behavior = id_bhvChainChompGate, model = E_MODEL_BOB_CHAIN_CHOMP_GATE, spawnOffset = 300, spawnYaw = 32768},
-            -- Questo sotto può essere interessante
-            { name = "Holdable object (test)", behavior = id_bhvBetaHoldableObject, model = E_MODEL_BULLY },
-            {
-                name = "Water level diamond",
-                model = E_MODEL_WDW_WATER_LEVEL_DIAMOND,
-                behavior = id_bhvWaterLevelDiamond,
-            },
-            {
-                name = "Water level pillar",
-                model = E_MODEL_CASTLE_WATER_LEVEL_PILLAR,
-                behavior = id_bhvWaterLevelPillar,
-                spawnOffset = 100,
-            },
+            { behavior = id_bhvJumpingBox, model = E_MODEL_BREAKABLE_BOX_SMALL, name = "Jumping Box" },
             {
                 name = "Cannonless wall",
                 parts = {
@@ -752,13 +749,28 @@ local categories = {
                 spawnOffset = 400,
                 spawnYaw = 16384,
             },
-            -- { name = "Bobomb buddy", behavior = id_bhvBobombBuddy, model = E_MODEL_BOBOMB_BUDDY },
-            { name = "Bobomb opens cannon", behavior = id_bhvBobombBuddyOpensCannon, model = E_MODEL_BOBOMB_BUDDY },
-            -- {
-            --   name = "Switch base",
-            --   model = E_MODEL_CAP_SWITCH_BASE,
-            --   behavior = id_bhvCapSwitchBase
-            -- },
+            { behavior = id_bhvWhirlpool, model = E_MODEL_DL_WHIRLPOOL, name = "Whirlpool" },
+            { behavior = id_bhvSLWalkingPenguin, model = E_MODEL_PENGUIN, name = "Walking Penguin" },
+            { name = "Baby penguin", model = E_MODEL_PENGUIN, behavior = id_bhvPenguinBaby, param2nd = 1 },
+            { behavior = id_bhvUkiki, model = E_MODEL_UKIKI, name = "Monkey" },
+            { name = "Monkey Macro", model = E_MODEL_UKIKI, behavior = id_bhvMacroUkiki },
+            -- Commented because this is already part of "Sinking cage platform"
+            -- { behavior = id_bhvDDDPole, model = E_MODEL_DDD_POLE, name = "DDD pole" },
+            -- { name = "DDD moving pole", behavior = id_bhvDddMovingPole, model = E_MODEL_DDD_POLE },
+            -- {name = "Bowser key", behavior = id_bhvBowserKey, model = E_MODEL_BOWSER_KEY},
+            -- Questo sotto può essere interessante
+            {
+                name = "Water level diamond",
+                model = E_MODEL_WDW_WATER_LEVEL_DIAMOND,
+                behavior = id_bhvWaterLevelDiamond,
+            },
+            {
+                name = "Water level pillar",
+                model = E_MODEL_CASTLE_WATER_LEVEL_PILLAR,
+                behavior = id_bhvWaterLevelPillar,
+                spawnOffset = 300,
+                spawnYOffset = 400,
+            },
             {
               name = "Switch red",
               model = E_MODEL_CAP_SWITCH,
@@ -777,6 +789,14 @@ local categories = {
               behavior = id_bhvCapSwitch,
               param2nd = 2,
             },
+            { name = "Holdable object (test)", behavior = id_bhvBetaHoldableObject, model = E_MODEL_BULLY },
+            -- { name = "Bobomb buddy", behavior = id_bhvBobombBuddy, model = E_MODEL_BOBOMB_BUDDY },
+            { name = "Bobomb opens cannon", behavior = id_bhvBobombBuddyOpensCannon, model = E_MODEL_BOBOMB_BUDDY },
+            -- {
+            --   name = "Switch base",
+            --   model = E_MODEL_CAP_SWITCH_BASE,
+            --   behavior = id_bhvCapSwitchBase
+            -- },
             -- USELESS
             -- { name = "Blue coin switch", behavior = id_bhvBlueCoinSwitch, model = E_MODEL_BLUE_COIN_SWITCH },
             -- {
@@ -903,9 +923,8 @@ local categories = {
     {
         name = "Decorative",
         items = {
-            { name = "Haunted bookshelf", model = E_MODEL_BBH_MOVING_BOOKSHELF, behavior = id_bhvHauntedBookshelf },
             { name = "Wooden post", model = E_MODEL_WOODEN_POST, behavior = id_bhvWoodenPost },
-            { name = "Blue fish", behavior = id_bhvBlueFish, model = E_MODEL_FISH },
+            { name = "Blue fish", behavior = id_bhvBlueFish, model = E_MODEL_FISH, spawnYOffset = 50 },
             -- Commented because it just flies outside of the map
             -- { name = "Bird", behavior = id_bhvBird, model = E_MODEL_BIRDS },
             { name = "Castle flag", behavior = id_bhvCastleFlagWaving, model = E_MODEL_CASTLE_GROUNDS_FLAG },
@@ -941,6 +960,8 @@ local categories = {
             },
             { name = "Seaweed", model = E_MODEL_SEAWEED, behavior = id_bhvSeaweed },
             { name = "Boo cage", behavior = id_bhvStaticObject, model = E_MODEL_HAUNTED_CAGE },
+            -- Not working, teleports Mario in random places
+            -- { name = "Boo cage", behavior = id_bhvBooCage, model = E_MODEL_HAUNTED_CAGE, param2nd = 1},
             { name = "RR cruiser wing", model = E_MODEL_RR_CRUISER_WING, behavior = id_bhvRrCruiserWing },
             { name = "Star smiley", model = E_MODEL_TTM_STAR_SMILEY, behavior = id_bhvStaticObject },
             { name = "Blue smiley", model = E_MODEL_TTM_BLUE_SMILEY, behavior = id_bhvStaticObject },
@@ -962,6 +983,7 @@ local categories = {
             --     {behavior = id_bhvBetaChestLid, model = E_MODEL_TREASURE_CHEST_LID},
             --   }
             -- },
+            { name = "Haunted bookshelf", model = E_MODEL_BBH_MOVING_BOOKSHELF, behavior = id_bhvHauntedBookshelf, spawnOffset = 300 },
             { name = "Boo key", behavior = id_bhvAlphaBooKey, model = E_MODEL_BETA_BOO_KEY },
             { behavior = id_bhvUnusedFakeStar, model = E_MODEL_STAR, name = "Fake Star", spawnYOffset = 100 },
             { name = "Message panel", model = E_MODEL_WOODEN_SIGNPOST, behavior = id_bhvMessagePanel, spawnYaw = 32768},
@@ -986,33 +1008,36 @@ if network_is_server() then
       },
       {name = "Whomp king", model = E_MODEL_WHOMP, behavior = id_bhvWhompKingBoss, spawnOffset = 500},
       { name = "king Bobomb", model = E_MODEL_KING_BOBOMB, behavior = id_bhvKingBobomb },
+      { behavior = id_bhvBowser, model = E_MODEL_BOWSER, name = "Bowser", param2nd = 1 },
+      { name = "Bowser2", behavior = id_bhvBowser, model = E_MODEL_BOWSER2, param2nd = 1},
       {name = "Blue fish many", model = E_MODEL_FISH, behavior = id_bhvManyBlueFishSpawner},
     }
   })
   table.insert(categories, {
     name = "Bugged (host-only)",
     items = {
-      {name = "Tricky triangles (Bugged)", model = E_MODEL_RR_TRICKY_TRIANGLES, behavior = id_bhvAnimatesOnFloorSwitchPress, param2nd = 2},
-      {name = "Rotating triangle (bugged)", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid},
+      {name = "RR Tricky triangles (Bugged)", model = E_MODEL_RR_TRICKY_TRIANGLES, behavior = id_bhvAnimatesOnFloorSwitchPress, param2nd = 2},
+      -- {name = "TTC Rotating triangle (bugged)", model = E_MODEL_TTC_ROTATING_TRIANGLE, behavior = id_bhvTTCRotatingSolid, param2nd = 7},
       -- Fix direction, also always goes same direction
       { name = "Spindel (bugged)", model = E_MODEL_SSL_SPINDEL, behavior = id_bhvSpindel, spawnYOffset = 200 },
       {
-          name = "Rotating wooden platform WF (bugged)",
-          model = E_MODEL_ERROR_MODEL,
+          name = "WF Rotating wooden platform (bugged)",
+          -- model = E_MODEL_ERROR_MODEL,
+          model = E_MODEL_NONE,
           behavior = id_bhvWfRotatingWoodenPlatform,
       },
       -- Makes the game lag
       -- {name = "Pyramid wall", model = E_MODEL_SSL_MOVING_PYRAMID_WALL, behavior = id_bhvSslMovingPyramidWall, spawnYaw = 16384},
-      { name = "Tumbling bridge WF (bugged)", model = E_MODEL_ERROR_MODEL, behavior = id_bhvWfTumblingBridge },
+      { name = "WF Tumbling bridge (bugged)", model = E_MODEL_ERROR_MODEL, behavior = id_bhvWfTumblingBridge },
       {
-          name = "Tumbling bridge BITFS (bugged)",
+          name = "BITFS Tumbling bridge (bugged)",
           model = E_MODEL_BITFS_TUMBLING_PLATFORM,
           behavior = id_bhvWfTumblingBridge,
       },
-      {name = "Floating wood bridge (bugged)", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
-      {name = "Floating wood bridge large (bugged)", model = E_MODEL_LLL_LARGE_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
+      {name = "LLL Floating wood bridge (bugged)", model = E_MODEL_LLL_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
+      {name = "LLL Floating wood bridge large (bugged)", model = E_MODEL_LLL_LARGE_WOOD_BRIDGE, behavior = id_bhvLllFloatingWoodBridge},
       {name = "Book spawn (bugged)", model = E_MODEL_BOOKEND, behavior = id_bhvBookendSpawn, spawnYOffset = 100},
-      {name = "Staircase (BitDW)", model = E_MODEL_BITDW_STAIRCASE, behavior = id_bhvAnimatesOnFloorSwitchPress, param2 = 2},
+      {name = "BitDW Staircase", model = E_MODEL_BITDW_STAIRCASE, behavior = id_bhvAnimatesOnFloorSwitchPress, param2 = 2},
       {name = "Puzzle Bowser", model = E_MODEL_NONE, behavior = id_bhvLllBowserPuzzle},
     }
   })
@@ -1192,6 +1217,10 @@ function spawn_selected(m)
 
       if o then next_object_id = next_object_id + 1 end
     end
+
+    -- This makes the pendulum move, but also increases the speed of other TTC objects
+    -- set_ttc_speed_setting(1)
+
 
     -- This section adds spawned object to the recent section
     -- This for is for removing duplicates
