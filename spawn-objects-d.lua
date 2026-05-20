@@ -1,4 +1,4 @@
--- name: Spawn Objects D (beta)
+-- name: Spawn Objects D
 -- description: Spawn and delete objects
 --
 -- - Because of sm64coopdxn limits, max 1200 objects can be spawned, included
