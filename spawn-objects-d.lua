@@ -70,6 +70,26 @@ local function onUprightToggle(index, value)
 end
 hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightToggle)
 
+
+-- Menu: Changes control scheme so that it does not use DPAD up and down
+if network_is_server() then
+    if gGlobalSyncTable.dpadUDFree == nil then
+        gGlobalSyncTable.dpadUDFree = false
+    end
+
+    -- hook_mod_menu_checkbox("Free buttons DPAD up and down", false, function(index, value)
+    hook_mod_menu_checkbox("Free buttons DPAD up and down", gGlobalSyncTable.dpadUDFree, function(index, value)
+        gGlobalSyncTable.dpadUDFree = value
+    end)
+end
+-- This sends a notification to infrom of controls change
+hook_on_sync_table_change(gGlobalSyncTable, "dpadUDFree", "dpadUDFree", function(tag, oldVal, newVal)
+  if oldVal ~= nil and newVal ~= oldVal then
+    djui_popup_create("Host has changed control scheme", 2)
+  end
+end)
+
+
 -- Menu categories and subcategories
 local categories = {
     {
@@ -1104,59 +1124,83 @@ end
 -- Menu navigation
 function move_selection(m)
     local buttons = m.controller.buttonPressed
-    if buttons & U_JPAD ~= 0 then
-        if inSubmenu then
-            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) - 1
-        else
-            selectedCategory = selectedCategory - 1
-        end
-    elseif buttons & D_JPAD ~= 0 then
-        if inSubmenu then
-            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 1
-        else
-            selectedCategory = selectedCategory + 1
-        end
-    elseif buttons & L_JPAD ~= 0 then
-        if inSubmenu then
-            inSubmenu = false
-            play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
-            return
-        else
-            selectedCategory = selectedCategory - 1
-        end
-    elseif buttons & R_JPAD ~= 0 then
-        if not inSubmenu then
-            inSubmenu = true
-            if not selectedObjectInCat[selectedCategory] then
-                selectedObjectInCat[selectedCategory] = 1
-            end
-            play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
-            return
-        else
-            -- This commmented code is for submenu change on DRAD right press.
-            -- I prefer to advance 5 elements instead
-            -- -- next category while in submenu
-            -- selectedCategory = selectedCategory + 1
-            -- if selectedCategory > #categories then
-            --     selectedCategory = 1
-            -- end
-            -- if not selectedObjectInCat[selectedCategory] then
-            --     selectedObjectInCat[selectedCategory] = 1
-            -- end
-            selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 5
-        end
+    local dpadUDFree = gGlobalSyncTable.dpadUDFree
+
+    -- if dpadUDFree == 0 then
+    if dpadUDFree == false then
+      if buttons & U_JPAD ~= 0 then
+          if inSubmenu then
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) - 1
+          else
+              selectedCategory = selectedCategory - 1
+          end
+      elseif buttons & D_JPAD ~= 0 then
+          if inSubmenu then
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 1
+          else
+              selectedCategory = selectedCategory + 1
+          end
+      elseif buttons & L_JPAD ~= 0 then
+          if inSubmenu then
+              inSubmenu = false
+              play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+              return
+          else
+              selectedCategory = selectedCategory - 1
+          end
+      elseif buttons & R_JPAD ~= 0 then
+          if not inSubmenu then
+              inSubmenu = true
+              if not selectedObjectInCat[selectedCategory] then
+                  selectedObjectInCat[selectedCategory] = 1
+              end
+              play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+              return
+          else
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 5
+          end
+      else
+          return
+      end
+    -- dpadUDFree == 1 , means that dpad right and left are not used
     else
-        return
+      if buttons & R_JPAD ~= 0 then
+          if inSubmenu then
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 1
+          else
+              selectedCategory = selectedCategory + 1
+          end
+      -- elseif buttons & L_JPAD ~= 0 then
+      --     if inSubmenu then
+      --         inSubmenu = false
+      --         play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+      --         return
+      --     else
+      --         selectedCategory = selectedCategory - 1
+      --     end
+      elseif buttons & L_JPAD ~= 0 then
+          if inSubmenu then
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) - 1
+          else
+              selectedCategory = selectedCategory - 1
+          end
+      elseif buttons & X_BUTTON ~= 0 and not inSubmenu then
+          -- X button now enters the submenu (from main menu only)
+          inSubmenu = true
+          if not selectedObjectInCat[selectedCategory] then
+              selectedObjectInCat[selectedCategory] = 1
+          end
+          play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+          return
+      elseif buttons & Y_BUTTON ~= 0 and inSubmenu then
+          inSubmenu = false
+          play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+          return
+      else
+          return
+      end
     end
 
-    -- clamp values
-    -- if inSubmenu then
-    --     local items = categories[selectedCategory].items
-    --     selectedObjectInCat[selectedCategory] =
-    --         math.max(1, math.min(selectedObjectInCat[selectedCategory] or 1, #items))
-    -- else
-    --     selectedCategory = math.max(1, math.min(selectedCategory, #categories))
-    -- end
     if inSubmenu then
         local items = categories[selectedCategory].items
         local numItems = #items
@@ -1247,12 +1291,9 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
 end)
 
 function spawn_selected(m)
-    if m.controller.buttonPressed & X_BUTTON == 0 then
+    if (m.controller.buttonPressed & X_BUTTON == 0) or (not inSubmenu) then
         return
     end
-    if not inSubmenu then
-        return
-    end -- only spawn when inside a submenu
 
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1479,7 +1520,7 @@ local function find_nearest_object(m)
 end
 
 local function handle_object_deletion(m)
-    if (m.controller.buttonPressed & Y_BUTTON) == 0 then
+    if (m.controller.buttonPressed & Y_BUTTON) == 0 or (gGlobalSyncTable.dpadUDFree == true and inSubmenu) then
         return
     end
 
@@ -1633,8 +1674,15 @@ hook_event(HOOK_ON_HUD_RENDER, function()
     end
 
     djui_hud_set_color(180, 180, 180, 200)
-    djui_hud_print_text("D-PAD L/R = submenu    X = spawn", 25, 510 + offsetY, 0.85)
-    djui_hud_print_text("Y = delete nearest object", 25, 530 + offsetY, 0.85)
+    if gGlobalSyncTable.dpadUDFree == false then
+      djui_hud_print_text("D-PAD L/R = enter main menu/submenu", 25, 490 + offsetY, 0.85)
+      djui_hud_print_text("X = spawn", 25, 510 + offsetY, 0.85)
+      djui_hud_print_text("Y = delete nearest object", 25, 530 + offsetY, 0.85)
+    else
+      djui_hud_print_text("D-PAD L/R = next/prev element", 25, 490 + offsetY, 0.85)
+      djui_hud_print_text("X = enter submenu/spawn", 25, 510 + offsetY, 0.85)
+      djui_hud_print_text("Y = back to main menu/delete nearest", 25, 530 + offsetY, 0.85)
+    end
 
     -- #RENDERCOOLDOWNTIMER --
     local m = gMarioStates[0]
@@ -1721,8 +1769,10 @@ hook_event(HOOK_MARIO_UPDATE, function(m)
     -- Y-button deletion
     handle_object_deletion(m)
 
-    move_selection(m)
+    -- move_selection(m)
+    -- spawn_selected(m)
     spawn_selected(m)
+    move_selection(m)
 end)
 
 -- Gives ferris wheel the blue platform instead of error model

@@ -9,41 +9,44 @@ I consider the "normal" version this one: `spawn-objects-d.lua`
 
 Other versions can be identified by the letters in the script name:
 
-- **no letter**: standard version, only allows objects spawn, no delete, no save, no persistence
-- **d** : includes `delete nearest object` feature
-- **2** : in this version D-PAD up and down are not used by the script, so that the user can combine this mod with other mods that use D-PAD up and down (e.g. checkpoints). Spawn menu is traversed by only using D-PAD left and right and the X button
+- **spawn-objects-d.lua** : includes `delete nearest object` feature, allows controls scheme change
+- **spawn-objects.lua**: standard version, only allows objects spawn (no delete). Does not allow controls scheme change
+- **spawn-objects-2.lua** : like spawn-objects.lua but D-PAD up and down are not used, so that the user can combine this mod with other mods that use D-PAD up and down (e.g. checkpoints). Spawn menu is traversed by only using D-PAD left and right and the X button
 
 # Bugs
 
 # Commands
 
-## All versions
+## Standard
 
+- D-PAD UP/DOWN: next/previous element
+- D-PAD RIGHT in menu: enter selected submenu
+- D-PAD RIGHT in submenu: jump 5 elements below
+- D-PAD LEFT in submenu: return to main menu
+- X: spawn selected object
 - Y: delete nearest object
 - /respawn to respawn when Mario gets stuck for any reason
 - /clearall (host only) delete all mod spawned objects
 
-## Versions without 2 in name
+## spawn-object-d with option dpadUDFree enabled
 
-- D-PAD UP/DOWN: select next/previous element
-- D-PAD RIGHT in menu: go to selected submenu
-- D-PAD LEFT in submenu: return to main menu
-- D-PAD RIGHT in submenu: jump 5 elements below
-- X: spawn selected object
+- D-PAD UP/DOWN: **UNUSED**
+- D-PAD RIGHT/LEFT: next/previous element
+- X in menu: enter submenu
+- X in submenu: spawn selected object
+- Y in menu: delete nearest object
+- Y in submenu: return to main menu
+- /respawn to respawn when Mario gets stuck for any reason
+- /clearall (host only) delete all mod spawned objects
 
-## Versions with 2 in name
+## spawn-objects-2
 
-- D-PAD RIGHT in menu: select next element
-- D-PAD LEFT in menu: select previous element
+- D-PAD RIGHT in menu: next element
+- D-PAD LEFT in menu: previous element
 - D-PAD RIGHT in submenu: select next element
 - D-PAD LEFT in submenu: go back to main menu
 - X in menu: enter selected submenu
 - X in submenu: spawn selected object
-
-## Other
-
-- ~~/savemap to save all the spawned objects from every player~~
-- ~~/loadmap (host only) to load saved map~~
 
 # Settings
 
@@ -58,6 +61,9 @@ Available to host only:
 - Allow Guest Object Deletion:
   - default: true
   - If enabled, all connected Marios will be able to delete nearest object
+- Free buttons DPAD up and down
+  - default: false
+  - If enabled, control scheme will be changed to avoid use of D-PAD up and down. See sections "Which one to choose" and "Commands" for more informations
 
 # CREDITS
 
@@ -102,6 +108,7 @@ Other:
 
 # Future development (maybe)
 
+- Allow to free Y button, so that it can be used by other mods
 - **ss**: includes `save map` feature to let players save spawned objects. Spawned object are NOT tracked, so persistence is not included
 - **sp** : includes `save map` feature by tracking the spawned objects, and persistence (object don't get lost when all players leave a map)
 - **arena**: specialized for use with arena mod
