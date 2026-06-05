@@ -66,6 +66,9 @@ Available to host only:
 - Free buttons DPAD up and down
   - default: false
   - If enabled, control scheme will be changed to avoid use of D-PAD up and down. See sections "Which one to choose" and "Commands" for more informations
+- No cooldown for all players (WARNING: players may abuse)
+  - default: false
+  - Removes cooldown for all connected players. WARNING: connected players may abuse and cause server crash or lag for all players. Only use this option with no more than 2 or 3 players
 
 # CREDITS
 
