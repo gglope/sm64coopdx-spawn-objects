@@ -3,6 +3,8 @@
 Spawn objects from a categorized menu and delete nearest object. Objects spawn position is decided by the script.
 Depending on the script version more functions are available.
 
+This mod is also avaibale on [gamebanana](https://gamebanana.com/mods/675633)
+
 # Which one to choose
 
 I consider the "normal" version this one: `spawn-objects-d.lua`
