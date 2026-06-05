@@ -9,7 +9,6 @@
 
 -- Parameters
 local COOLDOWN_FRAMES = 50
-
 local COOLDOWN_FRAMES_DEL
 if network_is_server() then
   COOLDOWN_FRAMES_DEL = 10
@@ -88,6 +87,22 @@ hook_on_sync_table_change(gGlobalSyncTable, "dpadUDFree", "dpadUDFree", function
     djui_popup_create("Host has changed control scheme", 2)
   end
 end)
+
+-- Menu: Disable cooldown for all players
+-- This mod already disables cooldown when only host connected, this option
+-- always removes cooldown where other players connected.
+-- WARNING: connected players may abuse leading to server crash or all-players
+-- lag
+if network_is_server() then
+    if gGlobalSyncTable.noCooldown == nil then
+        gGlobalSyncTable.noCooldown = false
+    end
+
+    hook_mod_menu_checkbox("No cooldown for all players (WARNING: players may abuse)", gGlobalSyncTable.noCooldown, function(index, value)
+        gGlobalSyncTable.noCooldown = value
+    end)
+end
+
 
 
 -- Menu categories and subcategories
@@ -579,7 +594,7 @@ local categories = {
                 spawnOffset = 1600,
                 spawnYOffset = -600,
                 spawnLateralOffset = 4000,
-                cooldown_frames = 100,
+                cooldown_multiplier = 2,
             },
             {
                 behavior = id_bhvBowsersSub,
@@ -590,7 +605,7 @@ local categories = {
                 spawnYaw = 16384,
                 spawnOffset = 4200,
                 spawnLateralOffset = 300,
-                cooldown_frames = 100,
+                cooldown_multiplier = 2,
             },
             {
                 behavior = id_bhvLllRotatingHexagonalRing,
@@ -598,7 +613,7 @@ local categories = {
                 name = "Rotating Hexagon (LLL)",
                 spawnOffset = 1600,
                 spawnYOffset = -300,
-                cooldown_frames = 100,
+                cooldown_multiplier = 2,
             },
             {
                 behavior = id_bhvDorrie,
@@ -618,7 +633,7 @@ local categories = {
                   {model = E_MODEL_JRB_SHIP_BACK_RIGHT_PART},
                 },
                 spawnYOffset = -1400,
-                cooldown_frames = 180,
+                cooldown_multiplier = 3,
             },
             {
                 name = "JRB ship (parallel)",
@@ -632,7 +647,7 @@ local categories = {
                 },
                 spawnYOffset = -1400,
                 spawnYaw = 16384,
-                cooldown_frames = 180,
+                cooldown_multiplier = 3,
             },
         },
     },
@@ -1407,7 +1422,11 @@ function spawn_selected(m)
       table.remove(recentObjs)
     end
 
-    data.cooldown = obj.cooldown_frames or COOLDOWN_FRAMES
+    -- No cooldown when only one player connected (the host)
+    if network_player_connected_count() > 1 and gGlobalSyncTable.noCooldown == false then
+      data.cooldown = COOLDOWN_FRAMES * (obj.cooldown_multiplier or 1)
+    end
+
     djui_popup_create("Spawned \\#FFFF00\\" .. name .. "\\#d5d5d5\\.", 1)
 end
 
@@ -1586,7 +1605,10 @@ local function handle_object_deletion(m)
         djui_popup_create("No nearby object found", 0.5)
     end
 
-    data.deletionCooldown = COOLDOWN_FRAMES_DEL
+    -- No cooldown when only one player connected (the host)
+    if network_player_connected_count() > 1 and gGlobalSyncTable.noCooldown == false then
+      data.deletionCooldown = COOLDOWN_FRAMES_DEL
+    end
 end
 
 -- respawn
