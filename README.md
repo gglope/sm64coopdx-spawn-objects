@@ -35,7 +35,7 @@ This mod is also avaibale on [gamebanana](https://gamebanana.com/mods/675633)
 - /respawn to respawn when Mario gets stuck for any reason
 - /clearall (host only) delete all mod spawned objects
 
-## scheme 2: no X and Y for OOM mod compatibility
+## scheme 2: no X and Y for OMM mod compatibility
 
 - D-PAD UP/DOWN: next/previous element
 - D-PAD RIGHT in menu: enter selected submenu
@@ -58,7 +58,7 @@ Available to host only:
   - If enabled, all connected Marios will be able to delete nearest object
 - Cycle control scheme
   - default: 0
-  - Choose the desired control scheme, 3 available. Scheme 1 and 2 are used either for checkpoint mod or OOM mod compatibility
+  - Choose the desired control scheme, 3 available. Scheme 1 and 2 are used either for checkpoint mod or OMM mod compatibility
 - No cooldown for all players (WARNING: players may abuse)
   - default: false
   - Removes cooldown for all connected players. WARNING: connected players may abuse and cause server crash or lag for all players. Only use this option with no more than 2 or 3 players
