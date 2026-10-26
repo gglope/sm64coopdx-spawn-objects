@@ -70,7 +70,7 @@ end
 hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightToggle)
 
 
-local controlSchemeNames = { [0] = "Default", [1] = "Free DPAD up/down (checkpoints mod compatibility) ", [2] = "DPAD only (OOM mod compatibility)" }
+local controlSchemeNames = { [0] = "Default", [1] = "Free DPAD up/down (checkpoints mod compatibility) ", [2] = "DPAD only (OMM mod compatibility)" }
 if network_is_server() then
     if gGlobalSyncTable.controlScheme == nil then
         gGlobalSyncTable.controlScheme = 0
