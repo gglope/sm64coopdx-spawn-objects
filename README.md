@@ -43,15 +43,6 @@ This mod is also avaibale on [gamebanana](https://gamebanana.com/mods/675633)
 - D-PAD LEFT in submenu: return to main menu
 - D-PAD LEFT in menu: delete nearest object
 
-## spawn-objects-2
-
-- D-PAD RIGHT in menu: next element
-- D-PAD LEFT in menu: previous element
-- D-PAD RIGHT in submenu: select next element
-- D-PAD LEFT in submenu: go back to main menu
-- X in menu: enter selected submenu
-- X in submenu: spawn selected object
-
 # Settings
 
 Available to anyone:
