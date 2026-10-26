@@ -5,21 +5,15 @@ Depending on the script version more functions are available.
 
 This mod is also avaibale on [gamebanana](https://gamebanana.com/mods/675633)
 
-# Which one to choose
+# Installation
 
-I consider the "normal" version this one: `spawn-objects-d.lua`
-
-Other versions can be identified by the letters in the script name:
-
-- **spawn-objects-d.lua** : includes `delete nearest object` feature, allows controls scheme change
-- **spawn-objects.lua**: standard version, only allows objects spawn (no delete). Does not allow controls scheme change
-- **spawn-objects-2.lua** : like spawn-objects.lua but D-PAD up and down are not used, so that the user can combine this mod with other mods that use D-PAD up and down (e.g. checkpoints). Spawn menu is traversed by only using D-PAD left and right and the X button
-
-# Bugs
+- Download the lua script **spawn-objects-d.lua**
+- Put it under the sm64coopdx mods directory. On Linux it's `~/.local/share/sm64coopdx/mods/`
+- Alternatively drag-and-drop the mod onto the sm64coopx windows
 
 # Commands
 
-## Standard
+## scheme 0
 
 - D-PAD UP/DOWN: next/previous element
 - D-PAD RIGHT in menu: enter selected submenu
@@ -30,7 +24,7 @@ Other versions can be identified by the letters in the script name:
 - /respawn to respawn when Mario gets stuck for any reason
 - /clearall (host only) delete all mod spawned objects
 
-## spawn-object-d with option dpadUDFree enabled
+## scheme 1: dpad up and down disabled for chechpoints mod compatibility
 
 - D-PAD UP/DOWN: **UNUSED**
 - D-PAD RIGHT/LEFT: next/previous element
@@ -40,6 +34,14 @@ Other versions can be identified by the letters in the script name:
 - Y in submenu: return to main menu
 - /respawn to respawn when Mario gets stuck for any reason
 - /clearall (host only) delete all mod spawned objects
+
+## scheme 2: no X and Y for OOM mod compatibility
+
+- D-PAD UP/DOWN: next/previous element
+- D-PAD RIGHT in menu: enter selected submenu
+- D-PAD RIGHT in submenu: spawn selected object
+- D-PAD LEFT in submenu: return to main menu
+- D-PAD LEFT in menu: delete nearest object
 
 ## spawn-objects-2
 
@@ -63,9 +65,9 @@ Available to host only:
 - Allow Guest Object Deletion:
   - default: true
   - If enabled, all connected Marios will be able to delete nearest object
-- Free buttons DPAD up and down
-  - default: false
-  - If enabled, control scheme will be changed to avoid use of D-PAD up and down. See sections "Which one to choose" and "Commands" for more informations
+- Cycle control scheme
+  - default: 0
+  - Choose the desired control scheme, 3 available. Scheme 1 and 2 are used either for checkpoint mod or OOM mod compatibility
 - No cooldown for all players (WARNING: players may abuse)
   - default: false
   - Removes cooldown for all connected players. WARNING: connected players may abuse and cause server crash or lag for all players. Only use this option with no more than 2 or 3 players
@@ -113,7 +115,6 @@ Other:
 
 # Future development (maybe)
 
-- Allow to free Y button, so that it can be used by other mods
 - **ss**: includes `save map` feature to let players save spawned objects. Spawned object are NOT tracked, so persistence is not included
 - **sp** : includes `save map` feature by tracking the spawned objects, and persistence (object don't get lost when all players leave a map)
 - **arena**: specialized for use with arena mod
