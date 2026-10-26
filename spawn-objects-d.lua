@@ -70,21 +70,19 @@ end
 hook_mod_menu_checkbox("Spawn Objects Upright", spawnObjectsUpright, onUprightToggle)
 
 
--- Menu: Changes control scheme so that it does not use DPAD up and down
+local controlSchemeNames = { [0] = "Default", [1] = "Free DPAD up/down (checkpoints mod compatibility) ", [2] = "DPAD only (OOM mod compatibility)" }
 if network_is_server() then
-    if gGlobalSyncTable.dpadUDFree == nil then
-        gGlobalSyncTable.dpadUDFree = false
+    if gGlobalSyncTable.controlScheme == nil then
+        gGlobalSyncTable.controlScheme = 0
     end
 
-    -- hook_mod_menu_checkbox("Free buttons DPAD up and down", false, function(index, value)
-    hook_mod_menu_checkbox("Free buttons DPAD up and down", gGlobalSyncTable.dpadUDFree, function(index, value)
-        gGlobalSyncTable.dpadUDFree = value
+    hook_mod_menu_button("Cycle control scheme", function(index)
+        gGlobalSyncTable.controlScheme = (gGlobalSyncTable.controlScheme + 1) % 3
     end)
 end
--- This sends a notification to infrom of controls change
-hook_on_sync_table_change(gGlobalSyncTable, "dpadUDFree", "dpadUDFree", function(tag, oldVal, newVal)
+hook_on_sync_table_change(gGlobalSyncTable, "controlScheme", "controlScheme", function(tag, oldVal, newVal)
   if oldVal ~= nil and newVal ~= oldVal then
-    djui_popup_create("Host has changed control scheme", 2)
+    djui_popup_create("Control scheme: " .. (controlSchemeNames[newVal] or "?"), 2)
   end
 end)
 
@@ -1139,10 +1137,40 @@ end
 -- Menu navigation
 function move_selection(m)
     local buttons = m.controller.buttonPressed
-    local dpadUDFree = gGlobalSyncTable.dpadUDFree
+    local scheme = gGlobalSyncTable.controlScheme
 
-    -- if dpadUDFree == 0 then
-    if dpadUDFree == false then
+    if scheme == 2 then
+      -- D-PAD only:
+      -- main menu: up/down = select category, right = enter submenu, left = delete
+      -- submenu: up/down = select object, right = spawn, left = back
+      if buttons & U_JPAD ~= 0 then
+          if inSubmenu then
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) - 1
+          else
+              selectedCategory = selectedCategory - 1
+          end
+      elseif buttons & D_JPAD ~= 0 then
+          if inSubmenu then
+              selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) + 1
+          else
+              selectedCategory = selectedCategory + 1
+          end
+      elseif buttons & R_JPAD ~= 0 and not inSubmenu then
+          inSubmenu = true
+          if not selectedObjectInCat[selectedCategory] then
+              selectedObjectInCat[selectedCategory] = 1
+          end
+          play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+          return
+      elseif buttons & L_JPAD ~= 0 and inSubmenu then
+          inSubmenu = false
+          play_sound(SOUND_MENU_CHANGE_SELECT, m.marioObj.header.gfx.cameraToObject)
+          return
+      else
+          -- includes R in submenu (spawn) and L in main menu (delete)
+          return
+      end
+    elseif scheme ~= 1 then
       if buttons & U_JPAD ~= 0 then
           if inSubmenu then
               selectedObjectInCat[selectedCategory] = (selectedObjectInCat[selectedCategory] or 1) - 1
@@ -1306,9 +1334,21 @@ hook_event(HOOK_ON_PACKET_RECEIVE, function(packet)
 end)
 
 function spawn_selected(m)
-    if (m.controller.buttonPressed & X_BUTTON == 0) or (not inSubmenu) then
+    local buttons = m.controller.buttonPressed
+    local spawnPressed
+    if gGlobalSyncTable.controlScheme == 2 then
+        spawnPressed = (buttons & R_JPAD) ~= 0
+    else
+        spawnPressed = (buttons & X_BUTTON) ~= 0
+    end
+
+    if (not spawnPressed) or (not inSubmenu) then
         return
     end
+    -- if (m.controller.buttonPressed & X_BUTTON == 0) or (not inSubmenu) then
+    --     return
+    -- end
+
 
     local data = get_player_data(m.playerIndex)
     if data.cooldown > 0 then
@@ -1539,8 +1579,17 @@ local function find_nearest_object(m)
 end
 
 local function handle_object_deletion(m)
-    if (m.controller.buttonPressed & Y_BUTTON) == 0 or (gGlobalSyncTable.dpadUDFree == true and inSubmenu) then
+    local buttons = m.controller.buttonPressed
+    local scheme = gGlobalSyncTable.controlScheme
+
+    if scheme == 2 then
+      if (buttons & L_JPAD) == 0 or inSubmenu then
         return
+      end
+    else
+      if (buttons & Y_BUTTON) == 0 or (scheme == 1 and inSubmenu) then
+          return
+      end
     end
 
     local data = get_player_data(m.playerIndex)
@@ -1696,14 +1745,18 @@ hook_event(HOOK_ON_HUD_RENDER, function()
     end
 
     djui_hud_set_color(180, 180, 180, 200)
-    if gGlobalSyncTable.dpadUDFree == false then
+    if gGlobalSyncTable.controlScheme == 0 then
       djui_hud_print_text("D-PAD L/R = enter main menu/submenu", 25, 490 + offsetY, 0.85)
       djui_hud_print_text("X = spawn", 25, 510 + offsetY, 0.85)
       djui_hud_print_text("Y = delete nearest object", 25, 530 + offsetY, 0.85)
-    else
+    elseif gGlobalSyncTable.controlScheme == 1 then
       djui_hud_print_text("D-PAD L/R = next/prev element", 25, 490 + offsetY, 0.85)
       djui_hud_print_text("X = enter submenu/spawn", 25, 510 + offsetY, 0.85)
       djui_hud_print_text("Y = back to main menu/delete nearest", 25, 530 + offsetY, 0.85)
+    else
+      djui_hud_print_text("D-PAD L/R menu = enter submenu, delete", 25, 490 + offsetY, 0.85)
+      djui_hud_print_text("D-PAD L/R submenu = return to menu, spawn", 25, 510 + offsetY, 0.85)
+      djui_hud_print_text("D-PAD U/D = select element", 25, 530 + offsetY, 0.85)
     end
 
     -- #RENDERCOOLDOWNTIMER --
